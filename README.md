@@ -52,3 +52,7 @@ Open [http://localhost:3000](http://localhost:3000).
 - Google sign-in on web can be added later (Supabase Google provider + redirect URLs).
 - Creating Spaces/missions on web is planned; for now create them in iOS and view here.
 - Node 22+ is recommended by current Supabase JS engines; Node 20 usually works for local build.
+
+## Functional design
+
+Feature scope and waves (zh): [`docs/FUNCTIONAL_DESIGN.md`](docs/FUNCTIONAL_DESIGN.md).
