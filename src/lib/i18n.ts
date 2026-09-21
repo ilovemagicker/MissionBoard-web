@@ -88,6 +88,22 @@ const dict = {
     today: "今天",
     googleSignIn: "使用 Google 登入",
     close: "關閉",
+    transferOwnership: "轉讓擁有權",
+    transferOwnershipConfirm: "確定將擁有權轉讓給此成員？你將變成管理員。",
+    transferOwnershipPick: "選擇新擁有者",
+    transferOwnershipSuccess: "已轉讓擁有權",
+    activity: "動態",
+    activityNewest: "最新",
+    activityEarlier: "稍早",
+    activityEmpty: "這個空間還沒有動態",
+    activityMarkSeen: "標為已讀",
+    activityNoSpace: "請先選擇空間",
+    kindMissionCreated: "建立任務",
+    kindMissionStatus: "任務狀態",
+    kindStepDone: "完成步驟",
+    kindStepClaimed: "認領步驟",
+    kindCommentAdded: "留言",
+    kindMemberJoined: "成員加入",
   },
   en: {
     appName: "Mission Board",
@@ -173,6 +189,22 @@ const dict = {
     today: "Today",
     googleSignIn: "Sign in with Google",
     close: "Close",
+    transferOwnership: "Transfer ownership",
+    transferOwnershipConfirm: "Transfer ownership to this member? You will become an admin.",
+    transferOwnershipPick: "Choose new owner",
+    transferOwnershipSuccess: "Ownership transferred",
+    activity: "Activity",
+    activityNewest: "Newest",
+    activityEarlier: "Earlier",
+    activityEmpty: "No activity in this space yet",
+    activityMarkSeen: "Mark as seen",
+    activityNoSpace: "Select a space first",
+    kindMissionCreated: "Mission created",
+    kindMissionStatus: "Mission status",
+    kindStepDone: "Step done",
+    kindStepClaimed: "Step claimed",
+    kindCommentAdded: "Comment",
+    kindMemberJoined: "Member joined",
   },
 } as const;
 
@@ -198,4 +230,23 @@ export function roleLabel(locale: Locale, role: string): string {
   if (role === "admin") return t(locale, "roleAdmin");
   if (role === "member") return t(locale, "roleMember");
   return role;
+}
+
+export function activityKindLabel(locale: Locale, kind: string): string {
+  switch (kind) {
+    case "mission_created":
+      return t(locale, "kindMissionCreated");
+    case "mission_status":
+      return t(locale, "kindMissionStatus");
+    case "step_done":
+      return t(locale, "kindStepDone");
+    case "step_claimed":
+      return t(locale, "kindStepClaimed");
+    case "comment_added":
+      return t(locale, "kindCommentAdded");
+    case "member_joined":
+      return t(locale, "kindMemberJoined");
+    default:
+      return kind;
+  }
 }

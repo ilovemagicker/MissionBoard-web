@@ -1,27 +1,59 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import { statusLabel, t } from "@/lib/i18n";
 import type { Locale, MissionRow } from "@/lib/types";
 
 type Filter = "all" | "active" | "done";
 
 export function MissionsListClient({
-  missions,
+  missions: initialMissions,
   locale,
   stepCounts,
   showArchived,
+  spaceId,
 }: {
   missions: MissionRow[];
   locale: Locale;
   stepCounts: Record<string, { done: number; total: number }>;
   showArchived: boolean;
+  spaceId: string;
 }) {
   const router = useRouter();
+  const [missions, setMissions] = useState(initialMissions);
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
+
+  useEffect(() => {
+    setMissions(initialMissions);
+  }, [initialMissions]);
+
+  useEffect(() => {
+    if (!spaceId) return;
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`missions:${spaceId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "missions",
+          filter: `space_id=eq.${spaceId}`,
+        },
+        () => {
+          router.refresh();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [spaceId, router]);
 
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase();

@@ -56,7 +56,8 @@ Open [http://localhost:3000](http://localhost:3000).
 | `/app/missions/new` | Create mission |
 | `/app/missions/[id]` | Detail: status, working, readers/workers panel, steps, comments, archive/delete |
 | `/app/calendar` | Month calendar for active space |
-| `/app/spaces` | List / create / join / members / pending + owner archive/delete |
+| `/app/activity` | Activity feed for active space (Realtime) |
+| `/app/spaces` | List / create / join / members / pending + owner archive/delete/transfer |
 | `/app/spaces/join` | Redirects to `/app/spaces` |
 | `/dashboard` | Redirects to `/app/missions` |
 
@@ -71,7 +72,7 @@ Scope and waves (zh): [`docs/FUNCTIONAL_DESIGN.md`](docs/FUNCTIONAL_DESIGN.md).
 
 **Wave 1 MVP: done** — app shell, missions list/create/detail, spaces create/join/approve, locale, logout.  
 **Wave 2: done** — calendar, readers/workers who+when, mission + space archive/delete, Google OAuth.  
-Wave 3+ (realtime, push, billing, activity feed) not started.
+**Wave 3 (partial): done** — ownership transfer UI, `activity_events` + Activity page + Realtime (missions list light refresh). Push / billing still later.
 
 ## Schema assumptions (shared with iOS)
 
@@ -85,8 +86,14 @@ Migrations: `MissionBoard-iOS/supabase/migrations/`
 - Mission status values: `todo` | `inProgress` | `done`.
 - `mission_readers.read_at`, `mission_workers.started_at` — detail chips open a who+when panel (join `profiles.display_name`).
 - Calendar appearance (aligned with iOS): deadline day = red, overdue (cell day after due) = purple; incomplete missions span from `start_date` (else `created_at`) onward; done missions only on start/due days.
-- Ownership transfer RPC `transfer_space_ownership` exists but **no web UI yet** (optional / Wave 2 skip).
-- Activity feed skipped — no shared DB table yet.
+- Ownership transfer: RPC `transfer_space_ownership` + Spaces UI (owner picks another member → confirm).
+- Activity: table `activity_events` (`006_activity_events.sql`) with triggers on missions / steps / comments / members; Web `/app/activity` + Realtime subscribe. Seen state via `localStorage` (`mb_activity_seen_<spaceId>`).
+
+### Required: run migration `006` in Supabase
+
+1. Open Supabase → **SQL Editor**.
+2. Paste and run [`supabase/migrations/006_activity_events.sql`](supabase/migrations/006_activity_events.sql) (same file lives in MissionBoard-iOS).
+3. Confirm **Realtime** / Publications includes `activity_events` (and optionally `missions` for list refresh). If the SQL `alter publication` did not stick, toggle the table in Dashboard → Database → Publications → `supabase_realtime`.
 
 ## Notes
 

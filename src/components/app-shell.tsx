@@ -18,7 +18,7 @@ export function AppShell({
   spaces: SpaceWithRole[];
   activeSpaceId: string | null;
   email?: string | null;
-  nav: "missions" | "calendar" | "spaces";
+  nav: "missions" | "calendar" | "activity" | "spaces";
 }) {
   const link = (href: string, key: MessageKey, active: boolean) => (
     <Link
@@ -49,9 +49,10 @@ export function AppShell({
           </div>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <nav className="flex gap-1 rounded-2xl bg-white p-1 shadow-sm ring-1 ring-slate-200/80">
+          <nav className="flex flex-wrap gap-1 rounded-2xl bg-white p-1 shadow-sm ring-1 ring-slate-200/80">
             {link("/app/missions", "missions", nav === "missions")}
             {link("/app/calendar", "calendar", nav === "calendar")}
+            {link("/app/activity", "activity", nav === "activity")}
             {link("/app/spaces", "spaces", nav === "spaces")}
           </nav>
           <SpaceSwitcher

@@ -79,3 +79,14 @@ export type MissionWorkerRow = {
   user_id: string;
   started_at: string;
 };
+
+export type ActivityEventRow = {
+  id: string;
+  space_id: string;
+  actor_id: string | null;
+  kind: string;
+  mission_id: string | null;
+  step_id: string | null;
+  summary: string;
+  created_at: string;
+};

@@ -9,6 +9,7 @@ import {
   declineJoinRequestAction,
   deleteSpaceAction,
   joinByInviteAction,
+  transferSpaceOwnershipAction,
   unarchiveSpaceAction,
 } from "@/app/actions/spaces";
 import { roleLabel, t } from "@/lib/i18n";
@@ -36,6 +37,8 @@ export function SpacesClient({
   const [info, setInfo] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [invite, setInvite] = useState("");
+  const [transferFor, setTransferFor] = useState<string | null>(null);
+  const [transferTarget, setTransferTarget] = useState<string>("");
 
   function run(fn: () => Promise<{ error?: string; ok?: boolean; invite_code?: string; spaceName?: string }>) {
     setError(null);
@@ -69,6 +72,20 @@ export function SpacesClient({
     run(async () => {
       const res = await joinByInviteAction(fd);
       if (!res.error) setInvite("");
+      return res;
+    });
+  }
+
+  function onTransfer(spaceId: string) {
+    if (!transferTarget) return;
+    if (!window.confirm(t(locale, "transferOwnershipConfirm"))) return;
+    run(async () => {
+      const res = await transferSpaceOwnershipAction(spaceId, transferTarget);
+      if (!res.error) {
+        setTransferFor(null);
+        setTransferTarget("");
+        setInfo(t(locale, "transferOwnershipSuccess"));
+      }
       return res;
     });
   }
@@ -185,6 +202,10 @@ export function SpacesClient({
           spaces.map((s) => {
             const archived = !!s.archived_at;
             const isOwner = s.role === "owner";
+            const otherMembers = (membersBySpace[s.id] ?? []).filter(
+              (m) => m.role !== "owner"
+            );
+            const showTransfer = transferFor === s.id;
             return (
               <div
                 key={s.id}
@@ -207,6 +228,20 @@ export function SpacesClient({
                   </div>
                   {isOwner && (
                     <div className="flex flex-wrap gap-2">
+                      {otherMembers.length > 0 && (
+                        <button
+                          type="button"
+                          disabled={pending}
+                          onClick={() => {
+                            setTransferFor(showTransfer ? null : s.id);
+                            setTransferTarget("");
+                            setError(null);
+                          }}
+                          className="rounded-lg bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700"
+                        >
+                          {t(locale, "transferOwnership")}
+                        </button>
+                      )}
                       <button
                         type="button"
                         disabled={pending}
@@ -243,6 +278,49 @@ export function SpacesClient({
                     </div>
                   )}
                 </div>
+
+                {showTransfer && (
+                  <div className="mt-3 flex flex-wrap items-end gap-2 rounded-2xl bg-indigo-50/80 p-3 ring-1 ring-indigo-100">
+                    <label className="min-w-[12rem] flex-1 text-xs font-semibold text-indigo-900">
+                      {t(locale, "transferOwnershipPick")}
+                      <select
+                        value={transferTarget}
+                        onChange={(e) => setTransferTarget(e.target.value)}
+                        className="mt-1 h-9 w-full rounded-xl border border-indigo-200 bg-white px-2 text-sm text-slate-800"
+                      >
+                        <option value="">—</option>
+                        {otherMembers.map((m) => (
+                          <option key={m.user_id} value={m.user_id}>
+                            {profiles[m.user_id]?.display_name ||
+                              m.nickname ||
+                              m.user_id.slice(0, 8)}{" "}
+                            ({roleLabel(locale, m.role)})
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <button
+                      type="button"
+                      disabled={pending || !transferTarget}
+                      onClick={() => onTransfer(s.id)}
+                      className="h-9 rounded-xl bg-indigo-600 px-4 text-xs font-semibold text-white disabled:opacity-50"
+                    >
+                      {t(locale, "transferOwnership")}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={pending}
+                      onClick={() => {
+                        setTransferFor(null);
+                        setTransferTarget("");
+                      }}
+                      className="h-9 rounded-xl bg-white px-3 text-xs font-semibold text-slate-600 ring-1 ring-slate-200"
+                    >
+                      {t(locale, "cancel")}
+                    </button>
+                  </div>
+                )}
+
                 <h4 className="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
                   {t(locale, "members")}
                 </h4>

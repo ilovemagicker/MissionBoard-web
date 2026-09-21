@@ -104,6 +104,7 @@ export default async function MissionsPage({
           locale={locale}
           stepCounts={stepCounts}
           showArchived={showArchived}
+          spaceId={activeSpaceId}
         />
       )}
     </AppShell>

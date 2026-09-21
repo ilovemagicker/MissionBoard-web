@@ -52,7 +52,7 @@
 | S4 | 審核加入申請 | ✅ | admin／owner 可同意／拒絕 |
 | S5 | 成員列表 | ✅ | 顯示名稱、角色 |
 | S6 | 離開／踢人 | ✅ | 對齊 iOS RLS／RPC |
-| S7 | 轉讓擁有者 | ⏳ | 對齊 `transfer` RPC（Web UI 暫緩） |
+| S7 | 轉讓擁有者 | ✅ | `transfer_space_ownership` UI（owner 選成員 → 確認） |
 | S8 | 封存／刪除空間 | ✅ | 對齊 `archive_space` / `unarchive_space` / `delete_space` |
 | S9 | 空間切換器 | ✅ | 全域 active space |
 
@@ -102,11 +102,12 @@
 
 | ID | 功能 | MVP? | 完成標準 |
 |----|------|------|----------|
-| A1 | 最新／過往 | ⏳ | 對齊 iOS activity store 或改由 DB 事件表（若尚無表則先延後） |
-| A2 | 已讀狀態 | ⏳ | mark read |
-| A3 | 點進任務 | ⏳ | deep link |
+| A1 | 最新／過往 | ✅ | `activity_events`（migration `006`）；Newest（24h）／Earlier |
+| A2 | 已讀狀態 | ✅ | localStorage last-seen timestamp（無 `is_read` 欄） |
+| A3 | 點進任務 | ✅ | 有 `mission_id` 時連到 `/app/missions/[id]` |
+| A4 | Realtime | ✅ | subscribe `activity_events` by `space_id`；任務列表輕量 realtime |
 
-> 註：若 activity 僅存在 iOS 本機，Web 需另定資料來源（新 table 或暫不做）。**MVP 可先不做 Activity。**
+> 註：需在 Supabase 執行 `006_activity_events.sql`，並確認 Dashboard → Replication 已啟用 `activity_events`（與可選 `missions`）。
 
 ### 3.7 設定／其它
 
@@ -140,15 +141,16 @@
 
 - ✅ 已讀／進行中名單＋時間  
 - ✅ 日曆  
-- ✅ 封存／刪除（轉讓 UI 暫緩；RPC 已有）  
-- ⏳ Activity（尚無共用 DB 表，跳過）  
+- ✅ 封存／刪除  
 - ✅ Google 登入  
 
-### Wave 3 — 平台化
+### Wave 3 — 平台化（部分）
 
-- 即時（Realtime／polling）  
-- Free／Pro 額度 UI  
-- 與 iOS deep link／分享連結  
+- ✅ 轉讓擁有者 UI  
+- ✅ Activity + `activity_events` + Realtime  
+- ⏳ Free／Pro 額度 UI  
+- ⏳ 與 iOS deep link／分享連結  
+- ⏳ Web Push  
 - 行銷站與 App shell 分離（可選）  
 
 ---
@@ -166,15 +168,14 @@
 | `/app/spaces` | 空間管理 |
 | `/app/spaces/join` | 邀請碼 |
 | `/app/calendar` | 月曆 |
+| `/app/activity` | 動態（目前空間） |
 | `/auth/callback` | Google OAuth 回調 |
-
-（動態 Activity 待有後端資料再加。）
 
 ---
 
 ## 6. 資料與權限
 
-- 表：沿用 iOS migrations（`spaces`、`space_members`、`missions`、`mission_steps`、`mission_comments`、`mission_readers`、`mission_workers`、join requests、RPCs）。  
+- 表：沿用 iOS migrations（`spaces`、`space_members`、`missions`、`mission_steps`、`mission_comments`、`mission_readers`、`mission_workers`、`activity_events`、join requests、RPCs）。  
 - Web 只用 **anon key + user JWT**；不放 service role。  
 - 寫入失敗要顯示 RLS／網路錯誤，不靜默吞掉。  
 
@@ -203,5 +204,6 @@
 
 ## 9. 下一步
 
-**Wave 1 / Wave 2 已完成。** 下一步可選 Wave 3（Realtime、額度 UI、deep link）或補轉讓擁有者／Activity 資料來源。  
+**Wave 1 / Wave 2 已完成；Wave 3 已補轉讓擁有者 + Activity/Realtime。** 之後可選額度 UI、deep link、Web Push。  
+**必須：** 在 Supabase SQL Editor 執行 `006_activity_events.sql`（見 web `supabase/migrations/` 或 iOS 同名檔），並在 Dashboard → Database → Publications / Realtime 確認 `activity_events`（與可選 `missions`）已加入。  
 UI 在功能可用後再統一視覺（可對齊 iOS 的藍＋卡片語言）。

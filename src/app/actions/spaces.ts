@@ -166,3 +166,22 @@ export async function deleteSpaceAction(spaceId: string) {
     return { error: formatError(err) };
   }
 }
+
+export async function transferSpaceOwnershipAction(
+  spaceId: string,
+  newOwnerId: string
+) {
+  try {
+    const { supabase } = await requireAuthedClient();
+    const { error } = await supabase.rpc("transfer_space_ownership", {
+      p_space_id: spaceId,
+      p_new_owner_id: newOwnerId,
+    });
+    if (error) throw error;
+    revalidatePath("/app/spaces");
+    revalidatePath("/app", "layout");
+    return { ok: true as const };
+  } catch (err) {
+    return { error: formatError(err) };
+  }
+}
