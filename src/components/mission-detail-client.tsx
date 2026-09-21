@@ -18,6 +18,7 @@ import {
   updateMissionStatusAction,
 } from "@/app/actions/missions";
 import { roleLabel, statusLabel, t } from "@/lib/i18n";
+import { formatDateTime } from "@/lib/format";
 import type {
   Locale,
   MissionCommentRow,
@@ -277,7 +278,7 @@ export function MissionDetailClient({
                       {assigneeName}
                       {step.deadline_date ? ` · ${step.deadline_date}` : ""}
                       {step.completed_at
-                        ? ` · ✓ ${new Date(step.completed_at).toLocaleString()}`
+                        ? ` · ✓ ${formatDateTime(step.completed_at, locale)}`
                         : ""}
                     </p>
                     <div className="mt-2 flex flex-wrap gap-2">
@@ -490,7 +491,7 @@ export function MissionDetailClient({
               </span>
               <span className="ml-2 text-slate-600">{c.body}</span>
               <p className="mt-0.5 text-xs text-slate-400">
-                {new Date(c.created_at).toLocaleString()}
+                {formatDateTime(c.created_at, locale)}
               </p>
             </li>
           ))}
@@ -554,9 +555,7 @@ export function MissionDetailClient({
                     </span>
                     <span className="text-xs text-slate-500">
                       {row.timeLabel}{" "}
-                      {new Date(row.at).toLocaleString(
-                        locale === "en" ? "en-US" : "zh-HK"
-                      )}
+                      {formatDateTime(row.at, locale)}
                     </span>
                   </li>
                 ))}

@@ -15,7 +15,7 @@ function seenKey(spaceId: string) {
 function formatWhen(iso: string, locale: Locale): string {
   try {
     const d = new Date(iso);
-    return d.toLocaleString(locale === "en" ? "en" : "zh-HK", {
+    return d.toLocaleString(locale === "en" ? "en-US" : "zh-HK", {
       month: "short",
       day: "numeric",
       hour: "2-digit",
