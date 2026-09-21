@@ -12,6 +12,13 @@ import {
   transferSpaceOwnershipAction,
   unarchiveSpaceAction,
 } from "@/app/actions/spaces";
+import { useEntitlements } from "@/components/entitlements-provider";
+import { LimitWallModal } from "@/components/monetization/limit-wall-modal";
+import {
+  precheckAcceptMember,
+  precheckCreateSpace,
+  type LimitKind,
+} from "@/lib/entitlements";
 import { roleLabel, t } from "@/lib/i18n";
 import type { JoinRequestRow, Locale, ProfileRow, SpaceWithRole } from "@/lib/types";
 
@@ -32,6 +39,7 @@ export function SpacesClient({
   pendingRequests: (JoinRequestRow & { space_name?: string })[];
 }) {
   const router = useRouter();
+  const { entitlements, ready } = useEntitlements();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
@@ -39,6 +47,13 @@ export function SpacesClient({
   const [invite, setInvite] = useState("");
   const [transferFor, setTransferFor] = useState<string | null>(null);
   const [transferTarget, setTransferTarget] = useState<string>("");
+  const [wallKind, setWallKind] = useState<LimitKind | null>(null);
+  const [wallOpen, setWallOpen] = useState(false);
+
+  function openWall(kind: LimitKind) {
+    setWallKind(kind);
+    setWallOpen(true);
+  }
 
   function run(fn: () => Promise<{ error?: string; ok?: boolean; invite_code?: string; spaceName?: string }>) {
     setError(null);
@@ -56,6 +71,19 @@ export function SpacesClient({
 
   function onCreate(e: FormEvent) {
     e.preventDefault();
+    // Soft wall: only count non-archived spaces (same as "my spaces" list for create).
+    const activeCount = spaces.filter((s) => !s.archived_at).length;
+    if (ready) {
+      const check = precheckCreateSpace(entitlements, activeCount);
+      if (check.status === "blocked") {
+        openWall(check.kind);
+        return;
+      }
+      if (check.status === "unavailable") {
+        setError(t(locale, "monQuotaUnavailableMessage"));
+        return;
+      }
+    }
     const fd = new FormData();
     fd.set("name", name);
     run(async () => {
@@ -74,6 +102,28 @@ export function SpacesClient({
       if (!res.error) setInvite("");
       return res;
     });
+  }
+
+  function onAcceptRequest(request: JoinRequestRow & { space_name?: string }) {
+    const members = membersBySpace[request.space_id] ?? [];
+    const space = spaces.find((s) => s.id === request.space_id);
+    const viewerIsOwner = space?.role === "owner";
+    if (ready) {
+      const check = precheckAcceptMember(
+        entitlements,
+        members.length,
+        !!viewerIsOwner
+      );
+      if (check.status === "blocked") {
+        openWall(check.kind);
+        return;
+      }
+      if (check.status === "unavailable") {
+        setError(t(locale, "monQuotaUnavailableMessage"));
+        return;
+      }
+    }
+    run(() => acceptJoinRequestAction(request.id));
   }
 
   function onTransfer(spaceId: string) {
@@ -173,7 +223,7 @@ export function SpacesClient({
                   <button
                     type="button"
                     disabled={pending}
-                    onClick={() => run(() => acceptJoinRequestAction(r.id))}
+                    onClick={() => onAcceptRequest(r)}
                     className="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-semibold text-white"
                   >
                     {t(locale, "accept")}
@@ -346,6 +396,16 @@ export function SpacesClient({
           })
         )}
       </section>
+
+      <LimitWallModal
+        locale={locale}
+        kind={wallKind}
+        open={wallOpen}
+        onClose={() => {
+          setWallOpen(false);
+          setWallKind(null);
+        }}
+      />
     </div>
   );
 }
