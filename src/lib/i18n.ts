@@ -37,6 +37,12 @@ const dict = {
     stopWorking: "取消進行中",
     claim: "認領",
     unclaim: "取消認領",
+    claimPending: "已申請／等待同意",
+    acceptClaim: "同意認領",
+    declineClaim: "拒絕認領",
+    cancelClaim: "取消申請",
+    pendingClaims: "認領申請",
+    kindStepClaimRequested: "申請認領",
     assign: "指派",
     unassigned: "未指派",
     members: "成員",
@@ -138,6 +144,12 @@ const dict = {
     stopWorking: "Stop working",
     claim: "Claim",
     unclaim: "Unclaim",
+    claimPending: "Requested — waiting",
+    acceptClaim: "Accept claim",
+    declineClaim: "Decline claim",
+    cancelClaim: "Cancel request",
+    pendingClaims: "Claim requests",
+    kindStepClaimRequested: "Claim requested",
     assign: "Assign",
     unassigned: "Unassigned",
     members: "Members",
@@ -242,6 +254,8 @@ export function activityKindLabel(locale: Locale, kind: string): string {
       return t(locale, "kindStepDone");
     case "step_claimed":
       return t(locale, "kindStepClaimed");
+    case "step_claim_requested":
+      return t(locale, "kindStepClaimRequested");
     case "comment_added":
       return t(locale, "kindCommentAdded");
     case "member_joined":

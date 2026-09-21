@@ -77,8 +77,8 @@
 |----|------|------|----------|
 | T1 | 列表＋勾選完成 | ✅ | `is_done`／`completed_at` |
 | T2 | 新增步驟 | ✅ | 標題＋排序 |
-| T3 | 認領／取消認領 | ✅ | assignee = me |
-| T4 | 指派成員 | ✅ | 選空間成員 |
+| T3 | 認領／取消認領 | ✅ | 認領＝申請；建立者同意後 assignee；本人可取消認領 |
+| T4 | 指派成員 | ✅ | 僅任務建立者或空間 owner/admin；RPC `assign_step` |
 | T5 | 步驟截止日 | ✅ | optional date |
 | T6 | 步驟留言 | ✅ | 依 step_id |
 | T7 | 顯示新增／完成時間 | ✅ | 相對時間 |
@@ -108,6 +108,8 @@
 | A4 | Realtime | ✅ | subscribe `activity_events` by `space_id`；任務列表輕量 realtime |
 
 > 註：需在 Supabase 執行 `006_activity_events.sql`，並確認 Dashboard → Replication 已啟用 `activity_events`（與可選 `missions`）。
+>
+> 步驟認領：執行 `007_step_claim_requests.sql`。成員不可直接設自己為 assignee；建立 claim request 後由 `missions.creator_id` 同意／拒絕。指派他人僅建立者或空間 admin/owner。
 
 ### 3.7 設定／其它
 
@@ -205,5 +207,5 @@
 ## 9. 下一步
 
 **Wave 1 / Wave 2 已完成；Wave 3 已補轉讓擁有者 + Activity/Realtime。** 之後可選額度 UI、deep link、Web Push。  
-**必須：** 在 Supabase SQL Editor 執行 `006_activity_events.sql`（見 web `supabase/migrations/` 或 iOS 同名檔），並在 Dashboard → Database → Publications / Realtime 確認 `activity_events`（與可選 `missions`）已加入。  
+**必須：** 在 Supabase SQL Editor 執行 `006_activity_events.sql` 與 `007_step_claim_requests.sql`（見 web `supabase/migrations/` 或 iOS 同名檔），並在 Dashboard → Database → Publications / Realtime 確認 `activity_events`（與可選 `missions`）已加入。  
 UI 在功能可用後再統一視覺（可對齊 iOS 的藍＋卡片語言）。

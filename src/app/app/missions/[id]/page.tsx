@@ -18,6 +18,7 @@ import type {
   MissionStepRow,
   MissionWorkerRow,
   ProfileRow,
+  StepClaimRequestRow,
 } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -55,6 +56,7 @@ export default async function MissionDetailPage({
     { data: readerRows },
     { data: workerRows },
     { data: members },
+    { data: claimRows },
   ] = await Promise.all([
     supabase
       .from("mission_steps")
@@ -82,6 +84,11 @@ export default async function MissionDetailPage({
       .from("space_members")
       .select("user_id, role")
       .eq("space_id", mission.space_id),
+    supabase
+      .from("step_claim_requests")
+      .select("id,mission_id,step_id,requester_id,status,created_at,resolved_at")
+      .eq("mission_id", id)
+      .eq("status", "pending"),
   ]);
 
   const readers = (readerRows as MissionReaderRow[]) ?? [];
@@ -93,6 +100,7 @@ export default async function MissionDetailPage({
   for (const c of comments ?? []) profileIds.add(c.author_id as string);
   for (const r of readers) profileIds.add(r.user_id);
   for (const w of workers) profileIds.add(w.user_id);
+  for (const c of claimRows ?? []) profileIds.add(c.requester_id as string);
 
   const profiles: Record<string, ProfileRow> = {};
   if (profileIds.size > 0) {
@@ -131,6 +139,7 @@ export default async function MissionDetailPage({
         workers={workers}
         isWorking={isWorking}
         userId={user.id}
+        claimRequests={(claimRows as StepClaimRequestRow[]) ?? []}
       />
     </AppShell>
   );

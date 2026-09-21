@@ -90,3 +90,13 @@ export type ActivityEventRow = {
   summary: string;
   created_at: string;
 };
+
+export type StepClaimRequestRow = {
+  id: string;
+  mission_id: string;
+  step_id: string;
+  requester_id: string;
+  status: "pending" | "accepted" | "declined" | "cancelled";
+  created_at: string;
+  resolved_at: string | null;
+};

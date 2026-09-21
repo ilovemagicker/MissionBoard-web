@@ -88,12 +88,19 @@ Migrations: `MissionBoard-iOS/supabase/migrations/`
 - Calendar appearance (aligned with iOS): deadline day = red, overdue (cell day after due) = purple; incomplete missions span from `start_date` (else `created_at`) onward; done missions only on start/due days.
 - Ownership transfer: RPC `transfer_space_ownership` + Spaces UI (owner picks another member → confirm).
 - Activity: table `activity_events` (`006_activity_events.sql`) with triggers on missions / steps / comments / members; Web `/app/activity` + Realtime subscribe. Seen state via `localStorage` (`mb_activity_seen_<spaceId>`).
+- Step claims (`007`): members request claim → mission creator accepts/declines; assign dropdown for creator/space admin only; self-unclaim via RPC.
 
 ### Required: run migration `006` in Supabase
 
 1. Open Supabase → **SQL Editor**.
 2. Paste and run [`supabase/migrations/006_activity_events.sql`](supabase/migrations/006_activity_events.sql) (same file lives in MissionBoard-iOS).
 3. Confirm **Realtime** / Publications includes `activity_events` (and optionally `missions` for list refresh). If the SQL `alter publication` did not stick, toggle the table in Dashboard → Database → Publications → `supabase_realtime`.
+
+### Required: run migration `007` in Supabase
+
+1. Open Supabase → **SQL Editor**.
+2. Paste and run [`supabase/migrations/007_step_claim_requests.sql`](supabase/migrations/007_step_claim_requests.sql) (same file in MissionBoard-iOS).
+3. Enables claim requests (`request_step_claim` / `accept_step_claim` / `decline_step_claim`), `assign_step`, `unclaim_step`, and blocks direct `assignee_id` updates.
 
 ## Notes
 

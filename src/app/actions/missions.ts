@@ -190,12 +190,18 @@ export async function claimStepAction(
   claim: boolean
 ) {
   try {
-    const { supabase, user } = await requireAuthedClient();
-    const { error } = await supabase
-      .from("mission_steps")
-      .update({ assignee_id: claim ? user.id : null })
-      .eq("id", stepId);
-    if (error) throw error;
+    const { supabase } = await requireAuthedClient();
+    if (claim) {
+      const { error } = await supabase.rpc("request_step_claim", {
+        p_step_id: stepId,
+      });
+      if (error) throw error;
+    } else {
+      const { error } = await supabase.rpc("unclaim_step", {
+        p_step_id: stepId,
+      });
+      if (error) throw error;
+    }
     revalidatePath(`/app/missions/${missionId}`);
     return { ok: true as const };
   } catch (err) {
@@ -210,10 +216,61 @@ export async function assignStepAction(
 ) {
   try {
     const { supabase } = await requireAuthedClient();
-    const { error } = await supabase
-      .from("mission_steps")
-      .update({ assignee_id: assigneeId || null })
-      .eq("id", stepId);
+    const { error } = await supabase.rpc("assign_step", {
+      p_step_id: stepId,
+      p_assignee_id: assigneeId || null,
+    });
+    if (error) throw error;
+    revalidatePath(`/app/missions/${missionId}`);
+    return { ok: true as const };
+  } catch (err) {
+    return { error: formatError(err) };
+  }
+}
+
+export async function acceptStepClaimAction(
+  requestId: string,
+  missionId: string
+) {
+  try {
+    const { supabase } = await requireAuthedClient();
+    const { error } = await supabase.rpc("accept_step_claim", {
+      p_request_id: requestId,
+    });
+    if (error) throw error;
+    revalidatePath(`/app/missions/${missionId}`);
+    return { ok: true as const };
+  } catch (err) {
+    return { error: formatError(err) };
+  }
+}
+
+export async function declineStepClaimAction(
+  requestId: string,
+  missionId: string
+) {
+  try {
+    const { supabase } = await requireAuthedClient();
+    const { error } = await supabase.rpc("decline_step_claim", {
+      p_request_id: requestId,
+    });
+    if (error) throw error;
+    revalidatePath(`/app/missions/${missionId}`);
+    return { ok: true as const };
+  } catch (err) {
+    return { error: formatError(err) };
+  }
+}
+
+export async function cancelStepClaimAction(
+  requestId: string,
+  missionId: string
+) {
+  try {
+    const { supabase } = await requireAuthedClient();
+    const { error } = await supabase.rpc("cancel_step_claim_request", {
+      p_request_id: requestId,
+    });
     if (error) throw error;
     revalidatePath(`/app/missions/${missionId}`);
     return { ok: true as const };

@@ -6,8 +6,11 @@ import {
   addCommentAction,
   addStepAction,
   archiveMissionAction,
+  acceptStepClaimAction,
   assignStepAction,
+  cancelStepClaimAction,
   claimStepAction,
+  declineStepClaimAction,
   deleteMissionAction,
   toggleStepDoneAction,
   toggleWorkingAction,
@@ -24,6 +27,7 @@ import type {
   MissionStepRow,
   MissionWorkerRow,
   ProfileRow,
+  StepClaimRequestRow,
 } from "@/lib/types";
 
 type PeoplePanel = "readers" | "workers" | null;
@@ -39,6 +43,7 @@ export function MissionDetailClient({
   workers,
   isWorking,
   userId,
+  claimRequests,
 }: {
   locale: Locale;
   mission: MissionRow;
@@ -50,6 +55,7 @@ export function MissionDetailClient({
   workers: MissionWorkerRow[];
   isWorking: boolean;
   userId: string;
+  claimRequests: StepClaimRequestRow[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -72,6 +78,16 @@ export function MissionDetailClient({
   const commentsByStep = (stepId: string) =>
     comments.filter((c) => c.step_id === stepId);
   const isArchived = !!mission.archived_at;
+  const myRole = members.find((m) => m.user_id === userId)?.role;
+  const canAssign =
+    mission.creator_id === userId ||
+    myRole === "owner" ||
+    myRole === "admin";
+  const pendingByStep = Object.fromEntries(
+    claimRequests
+      .filter((c) => c.status === "pending")
+      .map((c) => [c.step_id, c])
+  );
 
   async function onAddStep(e: FormEvent) {
     e.preventDefault();
@@ -265,40 +281,127 @@ export function MissionDetailClient({
                         : ""}
                     </p>
                     <div className="mt-2 flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        disabled={pending}
-                        onClick={() =>
-                          run(() => claimStepAction(step.id, mission.id, !isMine))
-                        }
-                        className="rounded-lg bg-white px-2 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200"
-                      >
-                        {isMine ? t(locale, "unclaim") : t(locale, "claim")}
-                      </button>
-                      <select
-                        className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs"
-                        value={step.assignee_id ?? ""}
-                        disabled={pending}
-                        onChange={(e) =>
-                          run(() =>
-                            assignStepAction(
-                              step.id,
-                              mission.id,
-                              e.target.value || null
+                      {!step.assignee_id &&
+                        (() => {
+                          const claim = pendingByStep[step.id];
+                          if (claim && claim.requester_id === userId) {
+                            return (
+                              <button
+                                type="button"
+                                disabled={pending}
+                                onClick={() =>
+                                  run(() =>
+                                    cancelStepClaimAction(claim.id, mission.id)
+                                  )
+                                }
+                                className="rounded-lg bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800 ring-1 ring-amber-200"
+                              >
+                                {t(locale, "claimPending")}
+                              </button>
+                            );
+                          }
+                          if (claim) {
+                            return (
+                              <span className="rounded-lg bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800 ring-1 ring-amber-200">
+                                {t(locale, "claimPending")}
+                              </span>
+                            );
+                          }
+                          return (
+                            <button
+                              type="button"
+                              disabled={pending}
+                              onClick={() =>
+                                run(() =>
+                                  claimStepAction(step.id, mission.id, true)
+                                )
+                              }
+                              className="rounded-lg bg-white px-2 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200"
+                            >
+                              {t(locale, "claim")}
+                            </button>
+                          );
+                        })()}
+                      {isMine && (
+                        <button
+                          type="button"
+                          disabled={pending}
+                          onClick={() =>
+                            run(() =>
+                              claimStepAction(step.id, mission.id, false)
                             )
-                          )
-                        }
-                      >
-                        <option value="">{t(locale, "unassigned")}</option>
-                        {members.map((m) => (
-                          <option key={m.user_id} value={m.user_id}>
-                            {profiles[m.user_id]?.display_name ||
-                              m.user_id.slice(0, 8)}{" "}
-                            ({roleLabel(locale, m.role)})
-                          </option>
-                        ))}
-                      </select>
+                          }
+                          className="rounded-lg bg-white px-2 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200"
+                        >
+                          {t(locale, "unclaim")}
+                        </button>
+                      )}
+                      {canAssign && (
+                        <select
+                          className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs"
+                          value={step.assignee_id ?? ""}
+                          disabled={pending}
+                          onChange={(e) =>
+                            run(() =>
+                              assignStepAction(
+                                step.id,
+                                mission.id,
+                                e.target.value || null
+                              )
+                            )
+                          }
+                        >
+                          <option value="">{t(locale, "unassigned")}</option>
+                          {members.map((m) => (
+                            <option key={m.user_id} value={m.user_id}>
+                              {profiles[m.user_id]?.display_name ||
+                                m.user_id.slice(0, 8)}{" "}
+                              ({roleLabel(locale, m.role)})
+                            </option>
+                          ))}
+                        </select>
+                      )}
                     </div>
+                    {pendingByStep[step.id] &&
+                      mission.creator_id === userId && (
+                        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                          <span className="font-semibold text-slate-600">
+                            {profiles[pendingByStep[step.id].requester_id]
+                              ?.display_name || "?"}{" "}
+                            — {t(locale, "pendingClaims")}
+                          </span>
+                          <button
+                            type="button"
+                            disabled={pending}
+                            onClick={() =>
+                              run(() =>
+                                acceptStepClaimAction(
+                                  pendingByStep[step.id].id,
+                                  mission.id
+                                )
+                              )
+                            }
+                            className="rounded-lg bg-blue-600 px-2 py-1 font-semibold text-white"
+                          >
+                            {t(locale, "acceptClaim")}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={pending}
+                            onClick={() =>
+                              run(() =>
+                                declineStepClaimAction(
+                                  pendingByStep[step.id].id,
+                                  mission.id
+                                )
+                              )
+                            }
+                            className="rounded-lg bg-white px-2 py-1 font-semibold text-slate-700 ring-1 ring-slate-200"
+                          >
+                            {t(locale, "declineClaim")}
+                          </button>
+                        </div>
+                      )}
 
                     <ul className="mt-3 space-y-1">
                       {commentsByStep(step.id).map((c) => (
