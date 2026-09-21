@@ -109,3 +109,60 @@ export async function declineJoinRequestAction(requestId: string) {
     return { error: formatError(err) };
   }
 }
+
+export async function archiveSpaceAction(spaceId: string) {
+  try {
+    const { supabase } = await requireAuthedClient();
+    const { error } = await supabase.rpc("archive_space", {
+      p_space_id: spaceId,
+    });
+    if (error) throw error;
+
+    const cookieStore = await cookies();
+    if (cookieStore.get(ACTIVE_SPACE_COOKIE)?.value === spaceId) {
+      cookieStore.delete(ACTIVE_SPACE_COOKIE);
+    }
+
+    revalidatePath("/app/spaces");
+    revalidatePath("/app", "layout");
+    return { ok: true as const };
+  } catch (err) {
+    return { error: formatError(err) };
+  }
+}
+
+export async function unarchiveSpaceAction(spaceId: string) {
+  try {
+    const { supabase } = await requireAuthedClient();
+    const { error } = await supabase.rpc("unarchive_space", {
+      p_space_id: spaceId,
+    });
+    if (error) throw error;
+    revalidatePath("/app/spaces");
+    revalidatePath("/app", "layout");
+    return { ok: true as const };
+  } catch (err) {
+    return { error: formatError(err) };
+  }
+}
+
+export async function deleteSpaceAction(spaceId: string) {
+  try {
+    const { supabase } = await requireAuthedClient();
+    const { error } = await supabase.rpc("delete_space", {
+      p_space_id: spaceId,
+    });
+    if (error) throw error;
+
+    const cookieStore = await cookies();
+    if (cookieStore.get(ACTIVE_SPACE_COOKIE)?.value === spaceId) {
+      cookieStore.delete(ACTIVE_SPACE_COOKIE);
+    }
+
+    revalidatePath("/app/spaces");
+    revalidatePath("/app", "layout");
+    return { ok: true as const };
+  } catch (err) {
+    return { error: formatError(err) };
+  }
+}

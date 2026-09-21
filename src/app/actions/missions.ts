@@ -244,3 +244,57 @@ export async function addCommentAction(formData: FormData) {
     return { error: formatError(err) };
   }
 }
+
+export async function archiveMissionAction(missionId: string) {
+  try {
+    const { supabase } = await requireAuthedClient();
+    const { error } = await supabase.rpc("archive_mission", {
+      p_mission_id: missionId,
+    });
+    if (error) throw error;
+    revalidatePath(`/app/missions/${missionId}`);
+    revalidatePath("/app/missions");
+    revalidatePath("/app/calendar");
+    return { ok: true as const };
+  } catch (err) {
+    return { error: formatError(err) };
+  }
+}
+
+export async function unarchiveMissionAction(missionId: string) {
+  try {
+    const { supabase } = await requireAuthedClient();
+    const { error } = await supabase.rpc("unarchive_mission", {
+      p_mission_id: missionId,
+    });
+    if (error) throw error;
+    revalidatePath(`/app/missions/${missionId}`);
+    revalidatePath("/app/missions");
+    revalidatePath("/app/calendar");
+    return { ok: true as const };
+  } catch (err) {
+    return { error: formatError(err) };
+  }
+}
+
+export async function deleteMissionAction(missionId: string) {
+  try {
+    const { supabase } = await requireAuthedClient();
+    const { error } = await supabase.from("missions").delete().eq("id", missionId);
+    if (error) throw error;
+    revalidatePath("/app/missions");
+    revalidatePath("/app/calendar");
+    redirect("/app/missions");
+  } catch (err) {
+    if (
+      err &&
+      typeof err === "object" &&
+      "digest" in err &&
+      typeof (err as { digest?: string }).digest === "string" &&
+      (err as { digest: string }).digest.startsWith("NEXT_REDIRECT")
+    ) {
+      throw err;
+    }
+    return { error: formatError(err) };
+  }
+}

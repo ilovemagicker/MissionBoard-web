@@ -30,7 +30,10 @@ export async function getSession(): Promise<{
   }
 }
 
-export async function getSpacesForUser(userId: string): Promise<SpaceWithRole[]> {
+export async function getSpacesForUser(
+  userId: string,
+  opts?: { includeArchived?: boolean }
+): Promise<SpaceWithRole[]> {
   if (!isSupabaseConfigured()) return [];
   const supabase = await createClient();
 
@@ -46,12 +49,17 @@ export async function getSpacesForUser(userId: string): Promise<SpaceWithRole[]>
     memberships.map((m) => [m.space_id as string, m.role as SpaceWithRole["role"]])
   );
 
-  const { data: spaces } = await supabase
+  let query = supabase
     .from("spaces")
     .select("id, name, invite_code, archived_at")
     .in("id", spaceIds)
-    .is("archived_at", null)
     .order("name");
+
+  if (!opts?.includeArchived) {
+    query = query.is("archived_at", null);
+  }
+
+  const { data: spaces } = await query;
 
   return (spaces ?? []).map((s) => ({
     id: s.id as string,

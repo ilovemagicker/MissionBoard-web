@@ -20,7 +20,7 @@
 | Email 註冊 | 顯示名稱 + email + 密碼 | 建立 account；可選驗證信流程 |
 | 登出 | 清 session | 回到登入／首頁 |
 | 訪客 | Web **不做** guest／mock（與 iOS 模擬器訪客不同） | — |
-| Google 登入 | 與 iOS 同一 Supabase Google provider | OAuth 回調後進工作台 |
+| Google 登入 | 與 iOS 同一 Supabase Google provider | ✅ OAuth 回調後進工作台 |
 | Apple 登入 | 暫緩（iOS 也先隱藏） | — |
 
 **驗收：** 用 iOS 已註冊帳號可在 Web 登入並看到同一 Spaces／任務。
@@ -52,8 +52,8 @@
 | S4 | 審核加入申請 | ✅ | admin／owner 可同意／拒絕 |
 | S5 | 成員列表 | ✅ | 顯示名稱、角色 |
 | S6 | 離開／踢人 | ✅ | 對齊 iOS RLS／RPC |
-| S7 | 轉讓擁有者 | ⏳ | 對齊 `transfer` RPC |
-| S8 | 封存／刪除空間 | ⏳ | 對齊既有 RPC |
+| S7 | 轉讓擁有者 | ⏳ | 對齊 `transfer` RPC（Web UI 暫緩） |
+| S8 | 封存／刪除空間 | ✅ | 對齊 `archive_space` / `unarchive_space` / `delete_space` |
 | S9 | 空間切換器 | ✅ | 全域 active space |
 
 ### 3.2 Missions（任務）
@@ -62,13 +62,13 @@
 |----|------|------|----------|
 | M1 | 列表（目前空間） | ✅ | 標題、狀態、截止、步驟進度、已讀／進行中數 |
 | M2 | 搜尋＋篩選 | ✅ | All／Active／Done；進階：我的／逾期／指派給我 |
-| M3 | 顯示封存 | ⏳ | toggle show archived |
+| M3 | 顯示封存 | ✅ | toggle show archived (`?archived=1`) |
 | M4 | 建立任務 | ✅ | 標題、說明、開始／截止、可選 AI stub 步驟 |
 | M5 | 任務詳情 | ✅ | 狀態、說明、日期、圖示、已讀／進行中、步驟、留言 |
 | M6 | 更新狀態 | ✅ | todo／inProgress／done |
 | M7 | 我要進行中 | ✅ | toggle worker |
-| M8 | 已讀紀錄 | ✅ | 開啟詳情寫 reader；點 Chip 看誰／何時 |
-| M9 | 封存／刪除任務 | ⏳ | 對齊 iOS |
+| M8 | 已讀紀錄 | ✅ | 開啟詳情寫 reader；點 Chip 看誰／何時（`read_at`） |
+| M9 | 封存／刪除任務 | ✅ | `archive_mission` / `unarchive_mission` + DELETE |
 | M10 | 旗幟圖示 | ⏳ | 選 SF 對應或 Web emoji／icon set |
 
 ### 3.3 Steps（步驟）
@@ -94,9 +94,9 @@
 
 | ID | 功能 | MVP? | 完成標準 |
 |----|------|------|----------|
-| K1 | 月曆＋選日 | ⏳ Web MVP+ | 顯示有任務的日子 |
-| K2 | 顏色規則 | ⏳ | 截止紅、逾期紫、進行中等（對齊 iOS） |
-| K3 | 當日任務列表 | ⏳ | 點日期看任務，連到詳情 |
+| K1 | 月曆＋選日 | ✅ | `/app/calendar` 顯示有任務的日子 |
+| K2 | 顏色規則 | ✅ | 截止紅、逾期紫、進行中等（對齊 iOS） |
+| K3 | 當日任務列表 | ✅ | 點日期看任務，連到詳情 |
 
 ### 3.6 Activity（動態）
 
@@ -136,13 +136,13 @@
 5. Spaces：建立、邀請碼、成員、審核申請  
 6. 登出 + 語言  
 
-### Wave 2 — 對齊強化
+### Wave 2 — 對齊強化 — **done**
 
-- 已讀／進行中名單＋時間  
-- 日曆  
-- 封存／刪除／轉讓  
-- Activity（若有後端資料）  
-- Google 登入  
+- ✅ 已讀／進行中名單＋時間  
+- ✅ 日曆  
+- ✅ 封存／刪除（轉讓 UI 暫緩；RPC 已有）  
+- ⏳ Activity（尚無共用 DB 表，跳過）  
+- ✅ Google 登入  
 
 ### Wave 3 — 平台化
 
@@ -165,8 +165,10 @@
 | `/app/missions/[id]` | 詳情 |
 | `/app/spaces` | 空間管理 |
 | `/app/spaces/join` | 邀請碼 |
+| `/app/calendar` | 月曆 |
+| `/auth/callback` | Google OAuth 回調 |
 
-（日曆／動態進 Wave 2 再加路由。）
+（動態 Activity 待有後端資料再加。）
 
 ---
 
@@ -201,5 +203,5 @@
 
 ## 9. 下一步
 
-確認 **Wave 1** 範圍後，依序實作：空間切換 → 任務 CRUD／詳情步驟 → Spaces 管理。  
+**Wave 1 / Wave 2 已完成。** 下一步可選 Wave 3（Realtime、額度 UI、deep link）或補轉讓擁有者／Activity 資料來源。  
 UI 在功能可用後再統一視覺（可對齊 iOS 的藍＋卡片語言）。

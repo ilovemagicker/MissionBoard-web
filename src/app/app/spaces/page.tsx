@@ -16,8 +16,9 @@ export default async function SpacesPage() {
   const { user, configured } = await getSession();
   if (!configured || !user) return null;
 
-  const spaces = await getSpacesForUser(user.id);
-  const activeSpaceId = await getActiveSpaceId(spaces);
+  const activeSpaces = await getSpacesForUser(user.id);
+  const spaces = await getSpacesForUser(user.id, { includeArchived: true });
+  const activeSpaceId = await getActiveSpaceId(activeSpaces);
   const supabase = await createClient();
 
   const spaceIds = spaces.map((s) => s.id);
@@ -73,7 +74,7 @@ export default async function SpacesPage() {
   return (
     <AppShell
       locale={locale}
-      spaces={spaces}
+      spaces={activeSpaces}
       activeSpaceId={activeSpaceId}
       email={user.email}
       nav="spaces"

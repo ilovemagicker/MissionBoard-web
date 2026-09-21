@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { statusLabel, t } from "@/lib/i18n";
 import type { Locale, MissionRow } from "@/lib/types";
 
@@ -11,11 +12,14 @@ export function MissionsListClient({
   missions,
   locale,
   stepCounts,
+  showArchived,
 }: {
   missions: MissionRow[];
   locale: Locale;
   stepCounts: Record<string, { done: number; total: number }>;
+  showArchived: boolean;
 }) {
+  const router = useRouter();
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
 
@@ -41,6 +45,11 @@ export function MissionsListClient({
     { id: "done", label: t(locale, "filterDone"), count: counts.done },
   ];
 
+  function toggleArchived() {
+    const url = showArchived ? "/app/missions" : "/app/missions?archived=1";
+    router.push(url);
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
@@ -58,7 +67,7 @@ export function MissionsListClient({
         </Link>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {chips.map((c) => (
           <button
             key={c.id}
@@ -73,6 +82,17 @@ export function MissionsListClient({
             {c.label} ({c.count})
           </button>
         ))}
+        <button
+          type="button"
+          onClick={toggleArchived}
+          className={`rounded-full px-3 py-1 text-xs font-semibold ${
+            showArchived
+              ? "bg-amber-600 text-white"
+              : "bg-white text-slate-600 ring-1 ring-slate-200"
+          }`}
+        >
+          {showArchived ? t(locale, "hideArchived") : t(locale, "showArchived")}
+        </button>
       </div>
 
       {filtered.length === 0 ? (
@@ -83,6 +103,7 @@ export function MissionsListClient({
         <ul className="space-y-2">
           {filtered.map((m) => {
             const sc = stepCounts[m.id] ?? { done: 0, total: 0 };
+            const archived = !!m.archived_at;
             return (
               <li key={m.id}>
                 <Link
@@ -92,6 +113,11 @@ export function MissionsListClient({
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold text-slate-900">
                       {m.title}
+                      {archived && (
+                        <span className="ml-2 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 ring-1 ring-amber-200">
+                          {t(locale, "archived")}
+                        </span>
+                      )}
                     </p>
                     <p className="mt-0.5 text-xs text-slate-500">
                       {m.due_date ? `Due ${m.due_date}` : "—"}

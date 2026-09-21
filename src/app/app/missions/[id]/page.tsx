@@ -13,8 +13,10 @@ import {
 } from "@/lib/session";
 import type {
   MissionCommentRow,
+  MissionReaderRow,
   MissionRow,
   MissionStepRow,
+  MissionWorkerRow,
   ProfileRow,
 } from "@/lib/types";
 
@@ -47,35 +49,50 @@ export default async function MissionDetailPage({
   // Mark read (best-effort)
   await markMissionReadAction(id);
 
-  const [{ data: steps }, { data: comments }, { data: workers }, { data: members }] =
-    await Promise.all([
-      supabase
-        .from("mission_steps")
-        .select(
-          "id,mission_id,title,order_index,is_done,assignee_id,deadline_date,created_at,completed_at"
-        )
-        .eq("mission_id", id)
-        .order("order_index"),
-      supabase
-        .from("mission_comments")
-        .select("id,mission_id,step_id,author_id,body,created_at")
-        .eq("mission_id", id)
-        .order("created_at"),
-      supabase
-        .from("mission_workers")
-        .select("user_id")
-        .eq("mission_id", id)
-        .eq("user_id", user.id),
-      supabase
-        .from("space_members")
-        .select("user_id, role")
-        .eq("space_id", mission.space_id),
-    ]);
+  const [
+    { data: steps },
+    { data: comments },
+    { data: readerRows },
+    { data: workerRows },
+    { data: members },
+  ] = await Promise.all([
+    supabase
+      .from("mission_steps")
+      .select(
+        "id,mission_id,title,order_index,is_done,assignee_id,deadline_date,created_at,completed_at"
+      )
+      .eq("mission_id", id)
+      .order("order_index"),
+    supabase
+      .from("mission_comments")
+      .select("id,mission_id,step_id,author_id,body,created_at")
+      .eq("mission_id", id)
+      .order("created_at"),
+    supabase
+      .from("mission_readers")
+      .select("mission_id,user_id,read_at")
+      .eq("mission_id", id)
+      .order("read_at", { ascending: false }),
+    supabase
+      .from("mission_workers")
+      .select("mission_id,user_id,started_at")
+      .eq("mission_id", id)
+      .order("started_at", { ascending: false }),
+    supabase
+      .from("space_members")
+      .select("user_id, role")
+      .eq("space_id", mission.space_id),
+  ]);
+
+  const readers = (readerRows as MissionReaderRow[]) ?? [];
+  const workers = (workerRows as MissionWorkerRow[]) ?? [];
 
   const profileIds = new Set<string>();
   for (const m of members ?? []) profileIds.add(m.user_id as string);
   for (const s of steps ?? []) if (s.assignee_id) profileIds.add(s.assignee_id as string);
   for (const c of comments ?? []) profileIds.add(c.author_id as string);
+  for (const r of readers) profileIds.add(r.user_id);
+  for (const w of workers) profileIds.add(w.user_id);
 
   const profiles: Record<string, ProfileRow> = {};
   if (profileIds.size > 0) {
@@ -88,7 +105,7 @@ export default async function MissionDetailPage({
     }
   }
 
-  const isWorking = (workers ?? []).length > 0;
+  const isWorking = workers.some((w) => w.user_id === user.id);
 
   return (
     <AppShell
@@ -110,6 +127,8 @@ export default async function MissionDetailPage({
         comments={(comments as MissionCommentRow[]) ?? []}
         members={(members as { user_id: string; role: string }[]) ?? []}
         profiles={profiles}
+        readers={readers}
+        workers={workers}
         isWorking={isWorking}
         userId={user.id}
       />

@@ -67,6 +67,28 @@ export default function LoginPage() {
     }
   }
 
+  async function onGoogleSignIn() {
+    setMessage(null);
+    if (!isSupabaseConfigured()) {
+      setMessage("尚未設定 Supabase：請在 .env.local 填入 URL 與 anon key。");
+      return;
+    }
+    setBusy(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      if (error) throw error;
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Google 登入失敗");
+      setBusy(false);
+    }
+  }
+
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-12">
       <div className="rounded-3xl bg-white p-8 shadow-sm ring-1 ring-slate-200/80">
@@ -99,7 +121,39 @@ export default function LoginPage() {
           </div>
         )}
 
-        <div className="mt-6 grid grid-cols-2 gap-2 rounded-xl bg-slate-100 p-1">
+        <button
+          type="button"
+          disabled={busy}
+          onClick={onGoogleSignIn}
+          className="mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-50"
+        >
+          <svg aria-hidden className="h-5 w-5" viewBox="0 0 24 24">
+            <path
+              fill="#EA4335"
+              d="M12 10.2v3.6h5.1c-.2 1.2-.9 2.2-1.9 2.9l3.1 2.4c1.8-1.7 2.8-4.1 2.8-7 0-.7-.1-1.3-.2-1.9H12z"
+            />
+            <path
+              fill="#34A853"
+              d="M6.6 14.3l-.8.6-2.7 2.1C4.8 19.7 8.1 22 12 22c2.7 0 5-.9 6.7-2.4l-3.1-2.4c-.9.6-2 .9-3.6.9-2.8 0-5.1-1.9-5.9-4.4z"
+            />
+            <path
+              fill="#4A90E2"
+              d="M3.1 7c-.6 1.2-1 2.5-1 4s.4 2.8 1 4l3.5-2.7c-.2-.6-.3-1.2-.3-1.3s.1-.7.3-1.3L3.1 7z"
+            />
+            <path
+              fill="#FBBC05"
+              d="M12 5.9c1.5 0 2.8.5 3.8 1.5l2.8-2.8C16.9 2.9 14.7 2 12 2 8.1 2 4.8 4.3 3.1 7l3.5 2.7C7 7.8 9.2 5.9 12 5.9z"
+            />
+          </svg>
+          使用 Google 登入
+        </button>
+
+        <div className="relative my-4 text-center text-xs font-medium text-slate-400">
+          <span className="bg-white px-2 relative z-10">或</span>
+          <span className="absolute left-0 right-0 top-1/2 h-px -translate-y-1/2 bg-slate-200" />
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 rounded-xl bg-slate-100 p-1">
           <button
             type="button"
             onClick={() => setMode("signin")}

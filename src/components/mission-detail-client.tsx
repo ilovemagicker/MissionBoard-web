@@ -5,21 +5,28 @@ import { FormEvent, useState, useTransition } from "react";
 import {
   addCommentAction,
   addStepAction,
+  archiveMissionAction,
   assignStepAction,
   claimStepAction,
+  deleteMissionAction,
   toggleStepDoneAction,
   toggleWorkingAction,
+  unarchiveMissionAction,
   updateMissionStatusAction,
 } from "@/app/actions/missions";
 import { roleLabel, statusLabel, t } from "@/lib/i18n";
 import type {
   Locale,
   MissionCommentRow,
+  MissionReaderRow,
   MissionRow,
   MissionStatus,
   MissionStepRow,
+  MissionWorkerRow,
   ProfileRow,
 } from "@/lib/types";
+
+type PeoplePanel = "readers" | "workers" | null;
 
 export function MissionDetailClient({
   locale,
@@ -28,6 +35,8 @@ export function MissionDetailClient({
   comments,
   members,
   profiles,
+  readers,
+  workers,
   isWorking,
   userId,
 }: {
@@ -37,6 +46,8 @@ export function MissionDetailClient({
   comments: MissionCommentRow[];
   members: { user_id: string; role: string }[];
   profiles: Record<string, ProfileRow>;
+  readers: MissionReaderRow[];
+  workers: MissionWorkerRow[];
   isWorking: boolean;
   userId: string;
 }) {
@@ -46,6 +57,7 @@ export function MissionDetailClient({
   const [stepTitle, setStepTitle] = useState("");
   const [commentBody, setCommentBody] = useState("");
   const [stepComments, setStepComments] = useState<Record<string, string>>({});
+  const [panel, setPanel] = useState<PeoplePanel>(null);
 
   function run(fn: () => Promise<{ error?: string; ok?: boolean } | void>) {
     setError(null);
@@ -59,6 +71,7 @@ export function MissionDetailClient({
   const missionComments = comments.filter((c) => !c.step_id);
   const commentsByStep = (stepId: string) =>
     comments.filter((c) => c.step_id === stepId);
+  const isArchived = !!mission.archived_at;
 
   async function onAddStep(e: FormEvent) {
     e.preventDefault();
@@ -84,6 +97,35 @@ export function MissionDetailClient({
     });
   }
 
+  function onArchiveToggle() {
+    if (!isArchived && !window.confirm(t(locale, "archiveConfirm"))) return;
+    run(() =>
+      isArchived
+        ? unarchiveMissionAction(mission.id)
+        : archiveMissionAction(mission.id)
+    );
+  }
+
+  function onDelete() {
+    if (!window.confirm(t(locale, "deleteConfirm"))) return;
+    run(() => deleteMissionAction(mission.id));
+  }
+
+  const panelRows =
+    panel === "readers"
+      ? readers.map((r) => ({
+          userId: r.user_id,
+          at: r.read_at,
+          timeLabel: t(locale, "readAt"),
+        }))
+      : panel === "workers"
+        ? workers.map((w) => ({
+            userId: w.user_id,
+            at: w.started_at,
+            timeLabel: t(locale, "workingSince"),
+          }))
+        : [];
+
   return (
     <div className="space-y-6">
       {error && (
@@ -93,7 +135,14 @@ export function MissionDetailClient({
       <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200/80">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">{mission.title}</h1>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-bold text-slate-900">{mission.title}</h1>
+              {isArchived && (
+                <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700 ring-1 ring-amber-200">
+                  {t(locale, "archived")}
+                </span>
+              )}
+            </div>
             {mission.description && (
               <p className="mt-2 whitespace-pre-wrap text-sm text-slate-600">
                 {mission.description}
@@ -104,6 +153,22 @@ export function MissionDetailClient({
               {mission.start_date && mission.due_date ? " · " : ""}
               {mission.due_date ? `${t(locale, "dueDate")}: ${mission.due_date}` : ""}
             </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setPanel("readers")}
+                className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-200"
+              >
+                {t(locale, "readers")} · {readers.length}
+              </button>
+              <button
+                type="button"
+                onClick={() => setPanel("workers")}
+                className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800 hover:bg-amber-100"
+              >
+                {t(locale, "workers")} · {workers.length}
+              </button>
+            </div>
           </div>
           <div className="flex flex-col gap-2">
             <select
@@ -136,6 +201,22 @@ export function MissionDetailClient({
               }`}
             >
               {isWorking ? t(locale, "stopWorking") : t(locale, "working")}
+            </button>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={onArchiveToggle}
+              className="rounded-xl bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700"
+            >
+              {isArchived ? t(locale, "unarchive") : t(locale, "archive")}
+            </button>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={onDelete}
+              className="rounded-xl bg-red-50 px-3 py-2 text-sm font-semibold text-red-700"
+            >
+              {t(locale, "delete")}
             </button>
           </div>
         </div>
@@ -328,6 +409,59 @@ export function MissionDetailClient({
           </button>
         </form>
       </section>
+
+      {panel && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setPanel(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-3xl bg-white p-5 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-base font-bold text-slate-900">
+                {panel === "readers" ? t(locale, "readers") : t(locale, "workers")}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setPanel(null)}
+                className="rounded-lg px-2 py-1 text-sm font-semibold text-slate-500 hover:bg-slate-100"
+              >
+                {t(locale, "close")}
+              </button>
+            </div>
+            {panelRows.length === 0 ? (
+              <p className="text-sm text-slate-500">
+                {panel === "readers"
+                  ? t(locale, "readersEmpty")
+                  : t(locale, "workersEmpty")}
+              </p>
+            ) : (
+              <ul className="max-h-80 space-y-2 overflow-y-auto">
+                {panelRows.map((row) => (
+                  <li
+                    key={`${row.userId}-${row.at}`}
+                    className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2"
+                  >
+                    <span className="text-sm font-semibold text-slate-800">
+                      {profiles[row.userId]?.display_name || row.userId.slice(0, 8)}
+                    </span>
+                    <span className="text-xs text-slate-500">
+                      {row.timeLabel}{" "}
+                      {new Date(row.at).toLocaleString(
+                        locale === "en" ? "en-US" : "zh-HK"
+                      )}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

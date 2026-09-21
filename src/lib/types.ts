@@ -67,3 +67,15 @@ export type JoinRequestRow = {
   status: "pending" | "accepted" | "declined";
   created_at: string;
 };
+
+export type MissionReaderRow = {
+  mission_id: string;
+  user_id: string;
+  read_at: string;
+};
+
+export type MissionWorkerRow = {
+  mission_id: string;
+  user_id: string;
+  started_at: string;
+};

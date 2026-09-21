@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { MissionsListClient } from "@/components/missions-list-client";
+import { CalendarClient } from "@/components/calendar-client";
 import { createClient } from "@/lib/supabase/server";
 import { t } from "@/lib/i18n";
 import {
@@ -13,13 +13,7 @@ import type { MissionRow } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-export default async function MissionsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ archived?: string }>;
-}) {
-  const { archived } = await searchParams;
-  const showArchived = archived === "1" || archived === "true";
+export default async function CalendarPage() {
   const locale = await getLocale();
   const { user, configured } = await getSession();
   if (!configured || !user) return null;
@@ -29,23 +23,17 @@ export default async function MissionsPage({
   const supabase = await createClient();
 
   let missions: MissionRow[] = [];
-  const stepCounts: Record<string, { done: number; total: number }> = {};
 
   if (activeSpaceId) {
-    let query = supabase
+    const { data, error } = await supabase
       .from("missions")
       .select(
         "id,space_id,title,description,start_date,due_date,status,flag_icon,creator_id,created_at,updated_at,archived_at"
       )
       .eq("space_id", activeSpaceId)
+      .is("archived_at", null)
       .order("updated_at", { ascending: false })
-      .limit(100);
-
-    if (!showArchived) {
-      query = query.is("archived_at", null);
-    }
-
-    const { data, error } = await query;
+      .limit(300);
 
     if (error) {
       return (
@@ -54,7 +42,7 @@ export default async function MissionsPage({
           spaces={spaces}
           activeSpaceId={activeSpaceId}
           email={user.email}
-          nav="missions"
+          nav="calendar"
         >
           <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">
             {error.message}
@@ -62,22 +50,7 @@ export default async function MissionsPage({
         </AppShell>
       );
     }
-
     missions = (data as MissionRow[]) ?? [];
-
-    if (missions.length > 0) {
-      const ids = missions.map((m) => m.id);
-      const { data: steps } = await supabase
-        .from("mission_steps")
-        .select("mission_id,is_done")
-        .in("mission_id", ids);
-      for (const s of steps ?? []) {
-        const mid = s.mission_id as string;
-        if (!stepCounts[mid]) stepCounts[mid] = { done: 0, total: 0 };
-        stepCounts[mid].total += 1;
-        if (s.is_done) stepCounts[mid].done += 1;
-      }
-    }
   }
 
   return (
@@ -86,7 +59,7 @@ export default async function MissionsPage({
       spaces={spaces}
       activeSpaceId={activeSpaceId}
       email={user.email}
-      nav="missions"
+      nav="calendar"
     >
       {!activeSpaceId ? (
         <div className="rounded-3xl bg-white p-8 text-center shadow-sm ring-1 ring-slate-200/80">
@@ -99,12 +72,7 @@ export default async function MissionsPage({
           </Link>
         </div>
       ) : (
-        <MissionsListClient
-          missions={missions}
-          locale={locale}
-          stepCounts={stepCounts}
-          showArchived={showArchived}
-        />
+        <CalendarClient missions={missions} locale={locale} />
       )}
     </AppShell>
   );

@@ -4,9 +4,12 @@ import { FormEvent, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   acceptJoinRequestAction,
+  archiveSpaceAction,
   createSpaceAction,
   declineJoinRequestAction,
+  deleteSpaceAction,
   joinByInviteAction,
+  unarchiveSpaceAction,
 } from "@/app/actions/spaces";
 import { roleLabel, t } from "@/lib/i18n";
 import type { JoinRequestRow, Locale, ProfileRow, SpaceWithRole } from "@/lib/types";
@@ -179,42 +182,90 @@ export function SpacesClient({
             {t(locale, "noSpaces")}
           </p>
         ) : (
-          spaces.map((s) => (
-            <div
-              key={s.id}
-              className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200/80"
-            >
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <h3 className="text-lg font-bold text-slate-900">{s.name}</h3>
-                  <p className="text-xs text-slate-500">
-                    {roleLabel(locale, s.role)} · {t(locale, "inviteCode")}:{" "}
-                    <code className="rounded bg-slate-100 px-1">{s.invite_code}</code>
-                  </p>
+          spaces.map((s) => {
+            const archived = !!s.archived_at;
+            const isOwner = s.role === "owner";
+            return (
+              <div
+                key={s.id}
+                className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200/80"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900">
+                      {s.name}
+                      {archived && (
+                        <span className="ml-2 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 ring-1 ring-amber-200">
+                          {t(locale, "archived")}
+                        </span>
+                      )}
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      {roleLabel(locale, s.role)} · {t(locale, "inviteCode")}:{" "}
+                      <code className="rounded bg-slate-100 px-1">{s.invite_code}</code>
+                    </p>
+                  </div>
+                  {isOwner && (
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        disabled={pending}
+                        onClick={() => {
+                          if (
+                            !archived &&
+                            !window.confirm(t(locale, "archiveSpaceConfirm"))
+                          ) {
+                            return;
+                          }
+                          run(() =>
+                            archived
+                              ? unarchiveSpaceAction(s.id)
+                              : archiveSpaceAction(s.id)
+                          );
+                        }}
+                        className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700"
+                      >
+                        {archived
+                          ? t(locale, "unarchiveSpace")
+                          : t(locale, "archiveSpace")}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={pending}
+                        onClick={() => {
+                          if (!window.confirm(t(locale, "deleteSpaceConfirm"))) return;
+                          run(() => deleteSpaceAction(s.id));
+                        }}
+                        className="rounded-lg bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700"
+                      >
+                        {t(locale, "deleteSpace")}
+                      </button>
+                    </div>
+                  )}
                 </div>
+                <h4 className="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  {t(locale, "members")}
+                </h4>
+                <ul className="mt-2 space-y-1">
+                  {(membersBySpace[s.id] ?? []).map((m) => (
+                    <li
+                      key={m.user_id}
+                      className="flex justify-between text-sm text-slate-700"
+                    >
+                      <span>
+                        {profiles[m.user_id]?.display_name ||
+                          m.nickname ||
+                          m.user_id.slice(0, 8)}
+                      </span>
+                      <span className="text-xs text-slate-500">
+                        {roleLabel(locale, m.role)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <h4 className="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                {t(locale, "members")}
-              </h4>
-              <ul className="mt-2 space-y-1">
-                {(membersBySpace[s.id] ?? []).map((m) => (
-                  <li
-                    key={m.user_id}
-                    className="flex justify-between text-sm text-slate-700"
-                  >
-                    <span>
-                      {profiles[m.user_id]?.display_name ||
-                        m.nickname ||
-                        m.user_id.slice(0, 8)}
-                    </span>
-                    <span className="text-xs text-slate-500">
-                      {roleLabel(locale, m.role)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))
+            );
+          })
         )}
       </section>
     </div>
