@@ -125,7 +125,7 @@
 
 - 首頁、Email 登入／註冊殼、Dashboard 唯讀 Spaces／Missions 列表  
 
-### Wave 1 — Web MVP（功能優先）
+### Wave 1 — Web MVP（功能優先） — **done**
 
 目標：在瀏覽器完成「日常使用」閉環（不必開 iOS）。
 

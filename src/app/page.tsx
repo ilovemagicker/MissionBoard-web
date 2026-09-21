@@ -22,7 +22,7 @@ export default function HomePage() {
             登入 / 註冊
           </Link>
           <Link
-            href="/dashboard"
+            href="/app/missions"
             className="inline-flex h-12 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-800 hover:bg-slate-50"
           >
             打開工作台

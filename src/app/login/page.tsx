@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
+import { signOutAction } from "@/app/actions/auth";
 
 export default function LoginPage() {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
@@ -11,6 +12,15 @@ export default function LoginPage() {
   const [displayName, setDisplayName] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [loggedInEmail, setLoggedInEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return;
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      setLoggedInEmail(data.user?.email ?? null);
+    });
+  }, []);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -28,17 +38,27 @@ export default function LoginPage() {
           password,
         });
         if (error) throw error;
-        window.location.href = "/dashboard";
+        window.location.href = "/app/missions";
       } else {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            data: { full_name: displayName || undefined },
+            data: {
+              full_name: displayName || undefined,
+              auth_provider: "email",
+            },
           },
         });
         if (error) throw error;
-        setMessage("註冊成功。若需驗證信箱，請到信箱點確認連結；否則可直接登入。");
+        if (data.session) {
+          window.location.href = "/app/missions";
+          return;
+        }
+        setMessage(
+          "註冊成功。若需驗證信箱，請到信箱點確認連結；否則可直接登入。"
+        );
+        setMode("signin");
       }
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "登入失敗");
@@ -59,6 +79,25 @@ export default function LoginPage() {
         <p className="mt-2 text-sm text-slate-500">
           與 iOS App 同一個 Supabase 專案。
         </p>
+
+        {loggedInEmail && (
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2 text-sm">
+            <span className="text-slate-700">已登入：{loggedInEmail}</span>
+            <div className="flex gap-2">
+              <Link
+                href="/app/missions"
+                className="font-semibold text-blue-600"
+              >
+                工作台
+              </Link>
+              <form action={signOutAction}>
+                <button type="submit" className="font-semibold text-slate-600">
+                  登出
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
 
         <div className="mt-6 grid grid-cols-2 gap-2 rounded-xl bg-slate-100 p-1">
           <button
