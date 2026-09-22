@@ -100,3 +100,23 @@ export type StepClaimRequestRow = {
   created_at: string;
   resolved_at: string | null;
 };
+
+export type ShiftSource = "manual" | "generated" | "swap";
+export type ShiftStatus = "scheduled" | "cancelled";
+
+export type ShiftRow = {
+  id: string;
+  space_id: string;
+  user_id: string;
+  start_at: string;
+  end_at: string;
+  title: string | null;
+  note: string | null;
+  color: string;
+  text_color: string;
+  template_id: string | null;
+  source: ShiftSource;
+  status: ShiftStatus;
+  created_at: string;
+  updated_at: string;
+};
