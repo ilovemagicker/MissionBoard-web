@@ -9,7 +9,14 @@ import {
   getSession,
   getSpacesForUser,
 } from "@/lib/session";
-import type { ProfileRow, ShiftRow, ShiftTemplateRow } from "@/lib/types";
+import type {
+  LeaveEntryRow,
+  ProfileRow,
+  ShiftRow,
+  ShiftSwapApprovalMode,
+  ShiftSwapRequestRow,
+  ShiftTemplateRow,
+} from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +36,9 @@ export default async function SchedulePage() {
 
   let shifts: ShiftRow[] = [];
   let templates: ShiftTemplateRow[] = [];
+  let leaveEntries: LeaveEntryRow[] = [];
+  let swapRequests: ShiftSwapRequestRow[] = [];
+  let swapApprovalMode: ShiftSwapApprovalMode = "admin_required";
   let members: { user_id: string; role: string; nickname: string | null }[] =
     [];
   const profiles: Record<string, ProfileRow> = {};
@@ -95,6 +105,59 @@ export default async function SchedulePage() {
 
     const userIds = new Set<string>(members.map((m) => m.user_id));
     for (const s of shifts) userIds.add(s.user_id);
+
+    const { data: leaveRows, error: leaveErr } = await supabase
+      .from("leave_entries")
+      .select(
+        "id,space_id,user_id,start_date,end_date,day_fraction,note,created_at,updated_at"
+      )
+      .eq("space_id", activeSpaceId)
+      .order("start_date", { ascending: false })
+      .limit(500);
+    if (!leaveErr) {
+      leaveEntries = (leaveRows as LeaveEntryRow[]) ?? [];
+      for (const e of leaveEntries) userIds.add(e.user_id);
+    }
+
+    const { data: swapRows, error: swapErr } = await supabase
+      .from("shift_swap_requests")
+      .select(
+        "id,space_id,shift_id,requester_id,target_user_id,kind,counter_shift_id,note,status,created_at,resolved_at,target_accepted_at"
+      )
+      .eq("space_id", activeSpaceId)
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (swapErr && /target_accepted_at/i.test(swapErr.message)) {
+      const legacy = await supabase
+        .from("shift_swap_requests")
+        .select(
+          "id,space_id,shift_id,requester_id,target_user_id,kind,counter_shift_id,note,status,created_at,resolved_at"
+        )
+        .eq("space_id", activeSpaceId)
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (!legacy.error) {
+        swapRequests = (legacy.data as ShiftSwapRequestRow[]) ?? [];
+      }
+    } else if (!swapErr) {
+      swapRequests = (swapRows as ShiftSwapRequestRow[]) ?? [];
+    }
+    for (const r of swapRequests) {
+      userIds.add(r.requester_id);
+      userIds.add(r.target_user_id);
+    }
+
+    const { data: spaceRow } = await supabase
+      .from("spaces")
+      .select("shift_swap_approval_mode")
+      .eq("id", activeSpaceId)
+      .maybeSingle();
+    const mode = (spaceRow as { shift_swap_approval_mode?: string } | null)
+      ?.shift_swap_approval_mode;
+    if (mode === "peer_accept" || mode === "admin_required") {
+      swapApprovalMode = mode;
+    }
+
     if (userIds.size > 0) {
       const { data: profileRows } = await supabase
         .from("profiles")
@@ -131,6 +194,9 @@ export default async function SchedulePage() {
           currentUserId={user.id}
           shifts={shifts}
           templates={templates}
+          leaveEntries={leaveEntries}
+          swapRequests={swapRequests}
+          swapApprovalMode={swapApprovalMode}
           members={members}
           profiles={profiles}
         />

@@ -14,6 +14,14 @@ import {
   updateShiftTemplateAction,
 } from "@/app/actions/shift-templates";
 import {
+  leaveEntriesOnDay,
+  ScheduleLeavePanel,
+} from "@/components/schedule-leave-panel";
+import {
+  ScheduleSwapInbox,
+  ScheduleSwapRequestSheet,
+} from "@/components/schedule-swap-panel";
+import {
   addMonths,
   daysInMonth,
   mondayFirstWeekday,
@@ -28,7 +36,15 @@ import {
   timeInputToMinutes,
   appliedRangeOnDay,
 } from "@/lib/shift-templates";
-import type { Locale, ProfileRow, ShiftRow, ShiftTemplateRow } from "@/lib/types";
+import type {
+  LeaveEntryRow,
+  Locale,
+  ProfileRow,
+  ShiftRow,
+  ShiftSwapApprovalMode,
+  ShiftSwapRequestRow,
+  ShiftTemplateRow,
+} from "@/lib/types";
 
 const WEEKDAYS_ZH = ["一", "二", "三", "四", "五", "六", "日"];
 const WEEKDAYS_EN = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -166,6 +182,9 @@ export function ScheduleClient({
   currentUserId,
   shifts,
   templates,
+  leaveEntries,
+  swapRequests,
+  swapApprovalMode,
   members,
   profiles,
 }: {
@@ -174,6 +193,9 @@ export function ScheduleClient({
   currentUserId: string;
   shifts: ShiftRow[];
   templates: ShiftTemplateRow[];
+  leaveEntries: LeaveEntryRow[];
+  swapRequests: ShiftSwapRequestRow[];
+  swapApprovalMode: ShiftSwapApprovalMode;
   members: Member[];
   profiles: Record<string, ProfileRow>;
 }) {
@@ -206,6 +228,11 @@ export function ScheduleClient({
   const [customPaintStart, setCustomPaintStart] = useState("09:00");
   const [customPaintEnd, setCustomPaintEnd] = useState("17:00");
   const [applyTargetUserId, setApplyTargetUserId] = useState(currentUserId);
+  const [showLeave, setShowLeave] = useState(false);
+  const [showSwapInbox, setShowSwapInbox] = useState(false);
+  const [swapRequestShift, setSwapRequestShift] = useState<ShiftRow | null>(
+    null
+  );
 
   const weekdays = locale === "en" ? WEEKDAYS_EN : WEEKDAYS_ZH;
 
@@ -228,6 +255,36 @@ export function ScheduleClient({
     }
     return map;
   }, [shifts]);
+
+  const leaveByDayCount = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const e of leaveEntries) {
+      const start = new Date(e.start_date + "T12:00:00");
+      const end = new Date(e.end_date + "T12:00:00");
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const key = toDateKey(d);
+        map.set(key, (map.get(key) ?? 0) + 1);
+      }
+    }
+    return map;
+  }, [leaveEntries]);
+
+  const dayLeave = useMemo(
+    () => leaveEntriesOnDay(leaveEntries, selectedKey),
+    [leaveEntries, selectedKey]
+  );
+
+  const pendingSwapCount = useMemo(() => {
+    const myRole = members.find((m) => m.user_id === currentUserId)?.role;
+    const admin = myRole === "owner" || myRole === "admin";
+    return swapRequests.filter((r) => {
+      if (r.status !== "pending") return false;
+      if (r.target_user_id === currentUserId) return true;
+      if (!admin) return false;
+      if (swapApprovalMode === "peer_accept") return true;
+      return Boolean(r.target_accepted_at) || r.target_user_id === currentUserId;
+    }).length;
+  }, [swapRequests, currentUserId, members, swapApprovalMode]);
 
   const cells = useMemo(() => {
     const first = startOfMonth(cursor);
@@ -658,6 +715,31 @@ export function ScheduleClient({
           <button
             type="button"
             onClick={() => {
+              setShowLeave(true);
+              setError(null);
+            }}
+            className="inline-flex h-10 items-center rounded-xl bg-orange-50 px-4 text-sm font-semibold text-orange-800 ring-1 ring-orange-200 hover:bg-orange-100"
+          >
+            {t(locale, "scheduleLeaveTitle")}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setShowSwapInbox(true);
+              setError(null);
+            }}
+            className="relative inline-flex h-10 items-center rounded-xl bg-white px-4 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50"
+          >
+            {t(locale, "scheduleSwapTitle")}
+            {pendingSwapCount > 0 ? (
+              <span className="ml-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-orange-500 px-1.5 text-[10px] font-bold text-white">
+                {pendingSwapCount}
+              </span>
+            ) : null}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
               setShowTemplates(true);
               setError(null);
             }}
@@ -890,17 +972,30 @@ export function ScheduleClient({
                 } ${cell.isToday && !selected ? "ring-1 ring-blue-300" : ""}`}
               >
                 <span className="font-medium">{cell.day}</span>
-                {cell.count > 0 ? (
-                  <span
-                    className={`mt-1 rounded-full px-1.5 text-[10px] font-bold leading-4 ${
-                      selected && !paintMode
-                        ? "bg-white/20 text-white"
-                        : "bg-blue-50 text-blue-700"
-                    }`}
-                  >
-                    {cell.count}
-                  </span>
-                ) : null}
+                <span className="mt-1 flex flex-wrap items-center justify-center gap-0.5">
+                  {cell.count > 0 ? (
+                    <span
+                      className={`rounded-full px-1.5 text-[10px] font-bold leading-4 ${
+                        selected && !paintMode
+                          ? "bg-white/20 text-white"
+                          : "bg-blue-50 text-blue-700"
+                      }`}
+                    >
+                      {cell.count}
+                    </span>
+                  ) : null}
+                  {(leaveByDayCount.get(cell.key) ?? 0) > 0 ? (
+                    <span
+                      className={`rounded-full px-1.5 text-[10px] font-bold leading-4 ${
+                        selected && !paintMode
+                          ? "bg-white/20 text-white"
+                          : "bg-orange-100 text-orange-700"
+                      }`}
+                    >
+                      {t(locale, "scheduleLeaveBadge")}
+                    </span>
+                  ) : null}
+                </span>
               </button>
             );
           })}
@@ -1001,24 +1096,35 @@ export function ScheduleClient({
                                 {s.note}
                               </span>
                             ) : null}
-                            {canEdit ? (
-                              <span className="mt-1 flex gap-2 text-xs font-semibold">
-                                <button
-                                  type="button"
-                                  className="underline opacity-95"
-                                  onClick={() => openEdit(s)}
-                                >
-                                  {t(locale, "scheduleEdit")}
-                                </button>
-                                <button
-                                  type="button"
-                                  className="underline opacity-95"
-                                  onClick={() => setConfirmDeleteId(s.id)}
-                                >
-                                  {t(locale, "scheduleDelete")}
-                                </button>
-                              </span>
-                            ) : null}
+                            <span className="mt-1 flex flex-wrap gap-2 text-xs font-semibold">
+                              {canEdit ? (
+                                <>
+                                  <button
+                                    type="button"
+                                    className="underline opacity-95"
+                                    onClick={() => openEdit(s)}
+                                  >
+                                    {t(locale, "scheduleEdit")}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="underline opacity-95"
+                                    onClick={() => setConfirmDeleteId(s.id)}
+                                  >
+                                    {t(locale, "scheduleDelete")}
+                                  </button>
+                                </>
+                              ) : null}
+                              <button
+                                type="button"
+                                className="underline opacity-95"
+                                onClick={() => setSwapRequestShift(s)}
+                              >
+                                {s.user_id === currentUserId
+                                  ? t(locale, "scheduleSwapAction")
+                                  : t(locale, "scheduleSwapOfferAction")}
+                              </button>
+                            </span>
                           </div>
                         );
                       })}
@@ -1077,6 +1183,48 @@ export function ScheduleClient({
                         )}
                       </span>
                     )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-orange-100 sm:p-5">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <h3 className="text-xs font-bold uppercase tracking-wide text-orange-700">
+                {t(locale, "scheduleLeaveOnDay")}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowLeave(true)}
+                className="text-xs font-semibold text-orange-700 hover:underline"
+              >
+                {t(locale, "scheduleLeaveTitle")}
+              </button>
+            </div>
+            {dayLeave.length === 0 ? (
+              <p className="text-sm text-slate-500">
+                {t(locale, "scheduleLeaveEmpty")}
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {dayLeave.map((e) => (
+                  <li
+                    key={e.id}
+                    className="rounded-xl bg-orange-50 px-3 py-2 text-sm text-orange-900"
+                  >
+                    <span className="font-semibold">
+                      {memberLabel(
+                        e.user_id,
+                        members,
+                        profiles,
+                        t(locale, "scheduleMemberFallback")
+                      )}
+                    </span>
+                    {e.start_date !== e.end_date
+                      ? ` · ${e.start_date} – ${e.end_date}`
+                      : ""}
+                    {e.note ? ` · ${e.note}` : ""}
                   </li>
                 ))}
               </ul>
@@ -1590,6 +1738,44 @@ export function ScheduleClient({
           </div>
         </div>
       ) : null}
+
+      <ScheduleLeavePanel
+        locale={locale}
+        spaceId={spaceId}
+        currentUserId={currentUserId}
+        members={members}
+        profiles={profiles}
+        leaveEntries={leaveEntries}
+        selectedDayKey={selectedKey}
+        open={showLeave}
+        onClose={() => setShowLeave(false)}
+      />
+
+      <ScheduleSwapInbox
+        locale={locale}
+        spaceId={spaceId}
+        currentUserId={currentUserId}
+        members={members}
+        profiles={profiles}
+        shifts={shifts}
+        swapRequests={swapRequests}
+        approvalMode={swapApprovalMode}
+        open={showSwapInbox}
+        onClose={() => setShowSwapInbox(false)}
+      />
+
+      <ScheduleSwapRequestSheet
+        locale={locale}
+        currentUserId={currentUserId}
+        members={members}
+        profiles={profiles}
+        shifts={shifts}
+        swapRequests={swapRequests}
+        shift={swapRequestShift}
+        approvalMode={swapApprovalMode}
+        open={swapRequestShift !== null}
+        onClose={() => setSwapRequestShift(null)}
+      />
     </div>
   );
 }

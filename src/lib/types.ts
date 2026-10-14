@@ -135,3 +135,37 @@ export type ShiftTemplateRow = {
   /** 028: personal owner; null = shared. May be missing if 028 not applied. */
   owner_user_id?: string | null;
 };
+
+export type LeaveDayFraction = 0.25 | 0.5 | 0.75 | 1;
+
+export type LeaveEntryRow = {
+  id: string;
+  space_id: string;
+  user_id: string;
+  start_date: string;
+  end_date: string;
+  day_fraction: number;
+  note: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ShiftSwapKind = "cover" | "swap";
+export type ShiftSwapStatus = "pending" | "accepted" | "declined" | "cancelled";
+export type ShiftSwapApprovalMode = "admin_required" | "peer_accept";
+
+export type ShiftSwapRequestRow = {
+  id: string;
+  space_id: string;
+  shift_id: string;
+  requester_id: string;
+  target_user_id: string;
+  kind: ShiftSwapKind;
+  counter_shift_id: string | null;
+  note: string | null;
+  status: ShiftSwapStatus;
+  created_at: string;
+  resolved_at: string | null;
+  /** 027: target agreed in admin_required mode; may be missing if 027 not applied. */
+  target_accepted_at?: string | null;
+};
