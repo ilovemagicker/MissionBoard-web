@@ -8,7 +8,7 @@ import {
   setMissionRecurrenceActiveAction,
 } from "@/app/actions/missions";
 import { formatDateTime } from "@/lib/format";
-import { t, tf } from "@/lib/i18n";
+import { listSeparator, t, tf } from "@/lib/i18n";
 import type {
   Locale,
   MissionRecurrenceRow,
@@ -46,7 +46,7 @@ function summary(
         const w = WEEKDAY_KEYS.find((x) => x.iso === iso);
         return w ? t(locale, w.key) : String(iso);
       })
-      .join(locale === "en" ? ", " : "、");
+      .join(listSeparator(locale));
     return `${tf(locale, "recurrenceWeeklySummary", { days: names })} ${time}`;
   }
   if (rec.frequency === "monthly") {

@@ -51,7 +51,18 @@ export async function setActiveSpaceAction(spaceId: string) {
 }
 
 function webLocaleToPushLocale(locale: Locale): string {
-  return locale === "en" ? "en" : "zh";
+  switch (locale) {
+    case "en":
+      return "en";
+    case "zh-Hans":
+      return "zh-hans";
+    case "ja":
+      return "ja";
+    case "ko":
+      return "ko";
+    default:
+      return "zh";
+  }
 }
 
 const SHIFT_MINUTES: ShiftReminderMinutes[] = [

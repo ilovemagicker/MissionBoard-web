@@ -5,7 +5,7 @@ import { useEntitlements } from "@/components/entitlements-provider";
 import { PlanBadge } from "@/components/monetization/plan-badge";
 import { QuotaMeterRow } from "@/components/monetization/quota-meter-row";
 import { PaywallModal } from "@/components/monetization/paywall-modal";
-import { t } from "@/lib/i18n";
+import { dateLocale, t } from "@/lib/i18n";
 import type { Locale } from "@/lib/types";
 
 export function PlanQuotaView({
@@ -57,7 +57,7 @@ export function PlanQuotaView({
             {entitlements.expiresAt
               ? ` · ${t(locale, "monEntitlementExpires")}: ${new Date(
                   entitlements.expiresAt
-                ).toLocaleString(locale === "en" ? "en-US" : "zh-HK")}`
+                ).toLocaleString(dateLocale(locale))}`
               : ""}
           </p>
         )}

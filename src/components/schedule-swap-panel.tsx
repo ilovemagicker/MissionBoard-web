@@ -10,7 +10,7 @@ import {
   requestShiftSwapAction,
   setShiftSwapApprovalModeAction,
 } from "@/app/actions/shift-swaps";
-import { t } from "@/lib/i18n";
+import { dateLocale, t } from "@/lib/i18n";
 import type {
   Locale,
   ProfileRow,
@@ -53,7 +53,7 @@ function formatShiftSummary(shift: ShiftRow, locale: Locale) {
     hour: "2-digit",
     minute: "2-digit",
   };
-  const loc = locale === "en" ? "en-US" : "zh-HK";
+  const loc = dateLocale(locale);
   const range = `${start.toLocaleString(loc, opts)} – ${end.toLocaleTimeString(loc, { hour: "2-digit", minute: "2-digit" })}`;
   return shift.title ? `${range} · ${shift.title}` : range;
 }

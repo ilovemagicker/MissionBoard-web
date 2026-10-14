@@ -9,7 +9,7 @@ import {
   deleteMissionPollAction,
 } from "@/app/actions/polls-announcements";
 import { formatDateTime } from "@/lib/format";
-import { t, tf } from "@/lib/i18n";
+import { listSeparator, t, tf } from "@/lib/i18n";
 import type {
   Locale,
   MissionPollOptionRow,
@@ -455,7 +455,7 @@ export function MissionPollsPanel({
                         </div>
                         {voterNames.length > 0 && (
                           <p className="mt-1 text-[11px] text-slate-500">
-                            {voterNames.join(locale === "en" ? ", " : "、")}
+                            {voterNames.join(listSeparator(locale))}
                           </p>
                         )}
                       </button>
@@ -471,7 +471,7 @@ export function MissionPollsPanel({
                     labels: opts
                       .filter((o) => finalIds.has(o.id))
                       .map((o) => o.label)
-                      .join(locale === "en" ? ", " : "、"),
+                      .join(listSeparator(locale)),
                   })}
                 </p>
               )}

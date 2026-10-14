@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { activityKindLabel, t } from "@/lib/i18n";
+import { activityKindLabel, dateLocale, t } from "@/lib/i18n";
 import type { ActivityEventRow, Locale, ProfileRow } from "@/lib/types";
 
 const SEEN_KEY_PREFIX = "mb_activity_seen_";
@@ -15,7 +15,7 @@ function seenKey(spaceId: string) {
 function formatWhen(iso: string, locale: Locale): string {
   try {
     const d = new Date(iso);
-    return d.toLocaleString(locale === "en" ? "en-US" : "zh-HK", {
+    return d.toLocaleString(dateLocale(locale), {
       month: "short",
       day: "numeric",
       hour: "2-digit",

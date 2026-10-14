@@ -1,8 +1,7 @@
 import type { Locale } from "@/lib/types";
+import { dateLocale } from "@/lib/i18n";
 
-export function dateLocale(locale: Locale): string {
-  return locale === "en" ? "en-US" : "zh-HK";
-}
+export { dateLocale };
 
 /** Stable date+time for SSR/CSR — always pass app locale, never browser default. */
 export function formatDateTime(iso: string | Date, locale: Locale): string {
