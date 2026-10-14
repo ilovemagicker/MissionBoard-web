@@ -4,84 +4,125 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
-  useSyncExternalStore,
+  useState,
   type ReactNode,
 } from "react";
 import {
+  entitlementsFromRow,
   entitlementsForPlan,
   readDebugPlan,
   writeDebugPlan,
   type Entitlements,
   type Plan,
+  type UserEntitlementRow,
 } from "@/lib/entitlements";
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 
 type EntitlementsContextValue = {
   entitlements: Entitlements;
   plan: Plan;
   isPro: boolean;
   ready: boolean;
-  setPlan: (plan: Plan) => void;
-  togglePlan: () => void;
+  /** QA only: force Free/Pro via localStorage; pass null to clear and use DB. */
+  setDebugPlan: (plan: Plan | null) => void;
+  toggleDebugPlan: () => void;
+  refresh: () => Promise<void>;
 };
 
 const EntitlementsContext = createContext<EntitlementsContextValue | null>(
   null
 );
 
-const listeners = new Set<() => void>();
-let cachedPlan: Plan | null = null;
-
-function emit() {
-  listeners.forEach((l) => l());
-}
-
-function getClientPlan(): Plan {
-  if (cachedPlan == null) {
-    cachedPlan = readDebugPlan() ?? "free";
-  }
-  return cachedPlan;
-}
-
-function getServerPlan(): Plan {
-  return "free";
-}
-
-function subscribe(listener: () => void) {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
-}
-
-function commitPlan(next: Plan) {
-  cachedPlan = next;
-  writeDebugPlan(next);
-  emit();
-}
-
 export function EntitlementsProvider({ children }: { children: ReactNode }) {
-  const plan = useSyncExternalStore(subscribe, getClientPlan, getServerPlan);
+  const [dbEntitlements, setDbEntitlements] = useState<Entitlements | null>(
+    null
+  );
+  const [debugPlan, setDebugPlanState] = useState<Plan | null>(null);
+  const [ready, setReady] = useState(false);
 
-  const setPlan = useCallback((next: Plan) => {
-    commitPlan(next);
+  const load = useCallback(async () => {
+    if (!isSupabaseConfigured()) {
+      setDbEntitlements(entitlementsFromRow(null));
+      setReady(true);
+      return;
+    }
+    try {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        setDbEntitlements(entitlementsFromRow(null));
+        setReady(true);
+        return;
+      }
+      const { data, error } = await supabase
+        .from("user_entitlements")
+        .select(
+          "user_id,is_pro_active,product_id,expires_at,original_transaction_id,source,updated_at"
+        )
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (error) {
+        // Table missing or RLS — fall back to free without blocking UI walls falsely...
+        // ready stays true; spaces precheck treats null ents as unavailable when we pass null.
+        // Here we still expose free defaults so badges render, but mark source null.
+        console.warn("user_entitlements fetch failed", error.message);
+        setDbEntitlements(entitlementsFromRow(null));
+      } else {
+        setDbEntitlements(
+          entitlementsFromRow((data as UserEntitlementRow | null) ?? null)
+        );
+      }
+    } catch (err) {
+      console.warn("user_entitlements fetch error", err);
+      setDbEntitlements(entitlementsFromRow(null));
+    } finally {
+      setReady(true);
+    }
   }, []);
 
-  const togglePlan = useCallback(() => {
-    const current = getClientPlan();
-    commitPlan(current === "free" ? "pro" : "free");
+  useEffect(() => {
+    setDebugPlanState(readDebugPlan());
+    void load();
+  }, [load]);
+
+  const setDebugPlan = useCallback((plan: Plan | null) => {
+    writeDebugPlan(plan);
+    setDebugPlanState(plan);
   }, []);
 
-  const entitlements = useMemo(() => entitlementsForPlan(plan), [plan]);
+  const toggleDebugPlan = useCallback(() => {
+    const base = debugPlan ?? dbEntitlements?.plan ?? "free";
+    const next: Plan = base === "free" ? "pro" : "free";
+    setDebugPlan(next);
+  }, [debugPlan, dbEntitlements?.plan, setDebugPlan]);
+
+  const entitlements = useMemo(() => {
+    if (debugPlan) {
+      return entitlementsForPlan(debugPlan, {
+        debugOverride: true,
+        source: dbEntitlements?.source ?? null,
+        expiresAt: dbEntitlements?.expiresAt ?? null,
+        fetchedAt: dbEntitlements?.fetchedAt ?? Date.now(),
+      });
+    }
+    return dbEntitlements ?? entitlementsFromRow(null);
+  }, [debugPlan, dbEntitlements]);
 
   const value = useMemo(
     () => ({
       entitlements,
-      plan,
-      isPro: plan === "pro",
-      ready: true,
-      setPlan,
-      togglePlan,
+      plan: entitlements.plan,
+      isPro: entitlements.plan === "pro",
+      ready,
+      setDebugPlan,
+      toggleDebugPlan,
+      refresh: load,
     }),
-    [entitlements, plan, setPlan, togglePlan]
+    [entitlements, ready, setDebugPlan, toggleDebugPlan, load]
   );
 
   return (

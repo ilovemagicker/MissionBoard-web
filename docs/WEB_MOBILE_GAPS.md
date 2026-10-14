@@ -3,7 +3,7 @@
 產品名：**Work Assistants**／任務助理。Repo 仍為 `MissionBoard-web`。  
 後端：與 MissionBoard-iOS 同一 Supabase；canonical migrations 在 iOS repo，`web/supabase/migrations` 僅鏡像。
 
-更新日期：2026-10-14（排班匯出後）
+更新日期：2026-10-14（真實 Pro＋任務優先度／決策人）
 
 ## 已上線（Web）
 
@@ -18,7 +18,7 @@
 - 排班 **請假／換班**：登記休假（日／區間／0.25 天比例；本人或 admin 編輯刪除）；換班／代班申請（RPC）、同意／核准／拒絕／取消；空間核准模式（admin_required／peer_accept）；鏡像 `012`／`013`／`014`／`027`
 - 排班 **整月批次產生**：選月份／範本／對象（admin 可多人）／輪替樣式（每天、平日、做四休四、做五休二）／同相位或錯開／略過或覆寫；寫入 `source=generated` + `generation_batch_id`；可復原上一批（localStorage 記 batch id）；對齊 iOS RotationGenerate 最小可用切片
 - 排班 **匯出／分享**：目前月份 → `.ics` 日曆下載、月班表 PNG（canvas）、列印預覽；可選本人／全成員／指定成員。鏡像 `015_schedule_share.sql`（家人 viewer 分享碼）；Web 匯出為純前端，不依賴 `schedule_share_codes`
-- Free／Pro UI（仍以 mock／localStorage 為主；`022` 鏡像已備）
+- Free／Pro UI：讀取 `user_entitlements`（`022`／`038` 鏡像）；設定頁顯示來源／到期；DEBUG localStorage 僅覆寫測試；checkout 仍為 App Store／Play stub
 
 ## 排班相對 mobile 缺口（優先下一波）
 
@@ -34,8 +34,8 @@
 
 - 「我的」完整頁（個人檔、通知偏好、刪帳）— Web 有設定／方案 stub
 - Push（Web Push 後期；APNs／FCM 為 mobile）
-- 任務：優先級／決策、開始提醒、週期任務、投票／公告、巢狀步驟（iOS `029`–`037`）
-- 真實 entitlements 讀 `user_entitlements`（helpers 已備；checkout 仍 iOS／Play 優先）
+- 任務：~~優先級／決策~~ ✅（`029`）；開始提醒、週期任務、投票／公告、巢狀步驟（iOS `030`–`037`）仍缺
+- ~~真實 entitlements 讀 `user_entitlements`~~ ✅（checkout 仍 iOS／Play 優先；無 Stripe）
 - 多語：Web 僅 zh-Hant／en；mobile 另有 ja／ko／zh-Hans
 
 ## 建議實作順序
@@ -45,7 +45,7 @@
 3. ~~Admin 代建班／編輯他人／油漆模式~~ ✅  
 4. ~~請假／換班~~ ✅  
 5. ~~整月批次產生／undo batch~~ ✅  
-6. ~~排班分享／匯出（`015`）~~ ✅（client export）；任務進階功能與真實 Pro 讀取  
+6. ~~排班分享／匯出（`015`）~~ ✅（client export）；~~真實 Pro 讀取~~ ✅；~~任務優先度／決策人（`029`）~~ ✅；其餘任務進階（`030`–`037`）待做  
 
 Auth redirect（Cloudflare／自訂網域）：`https://app.onyxlab.dev/auth/callback`（與 Vercel 網域並存於 Supabase Redirect URLs）。
 

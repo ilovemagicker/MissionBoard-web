@@ -17,8 +17,23 @@ export function PlanQuotaView({
   spacesUsed: number;
   membersUsed: number;
 }) {
-  const { entitlements, isPro, plan, togglePlan } = useEntitlements();
+  const {
+    entitlements,
+    isPro,
+    plan,
+    ready,
+    toggleDebugPlan,
+    setDebugPlan,
+    refresh,
+  } = useEntitlements();
   const [showPaywall, setShowPaywall] = useState(false);
+
+  const sourceLabel =
+    entitlements.source === "apple"
+      ? "App Store"
+      : entitlements.source === "google_play"
+        ? "Google Play"
+        : entitlements.source ?? "—";
 
   return (
     <div className="space-y-4">
@@ -29,9 +44,33 @@ export function PlanQuotaView({
           </h2>
           <PlanBadge plan={plan} />
         </div>
-        <p className="mt-3 text-[11px] text-slate-400">
+        <p className="mt-3 text-xs text-slate-500">
+          {ready
+            ? entitlements.debugOverride
+              ? t(locale, "monEntitlementDebugActive")
+              : t(locale, "monEntitlementFromDb")
+            : t(locale, "loading")}
+        </p>
+        {!entitlements.debugOverride && isPro && (
+          <p className="mt-1 text-xs text-slate-500">
+            {t(locale, "monEntitlementSource")}: {sourceLabel}
+            {entitlements.expiresAt
+              ? ` · ${t(locale, "monEntitlementExpires")}: ${new Date(
+                  entitlements.expiresAt
+                ).toLocaleString(locale === "en" ? "en-US" : "zh-HK")}`
+              : ""}
+          </p>
+        )}
+        <p className="mt-2 text-[11px] text-slate-400">
           {t(locale, "monAssumedPriceNote")}
         </p>
+        <button
+          type="button"
+          onClick={() => void refresh()}
+          className="mt-3 h-8 rounded-lg px-3 text-xs font-semibold text-blue-600 hover:bg-blue-50"
+        >
+          {t(locale, "monRefreshEntitlements")}
+        </button>
       </section>
 
       <section className="space-y-4 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200/80">
@@ -42,6 +81,7 @@ export function PlanQuotaView({
           title={t(locale, "monQuotaSpaces")}
           used={spacesUsed}
           limit={entitlements.maxSpaces}
+          footnote={t(locale, "monQuotaSpacesFootnote")}
         />
         <QuotaMeterRow
           title={t(locale, "monQuotaMembers")}
@@ -84,13 +124,24 @@ export function PlanQuotaView({
         <p className="mt-1 text-xs text-amber-800">
           {t(locale, "monDebugPlanHint")}
         </p>
-        <button
-          type="button"
-          onClick={togglePlan}
-          className="mt-3 h-9 rounded-xl bg-white px-4 text-xs font-semibold text-slate-700 ring-1 ring-slate-200"
-        >
-          {t(locale, "monDebugTogglePlan")} ({plan})
-        </button>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={toggleDebugPlan}
+            className="h-9 rounded-xl bg-white px-4 text-xs font-semibold text-slate-700 ring-1 ring-slate-200"
+          >
+            {t(locale, "monDebugTogglePlan")} ({plan})
+          </button>
+          {entitlements.debugOverride && (
+            <button
+              type="button"
+              onClick={() => setDebugPlan(null)}
+              className="h-9 rounded-xl bg-white px-4 text-xs font-semibold text-slate-700 ring-1 ring-slate-200"
+            >
+              {t(locale, "monDebugClearOverride")}
+            </button>
+          )}
+        </div>
       </section>
 
       <PaywallModal

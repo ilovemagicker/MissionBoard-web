@@ -18,7 +18,8 @@ export default async function SettingsPage() {
 
   const spaces = await getSpacesForUser(user.id);
   const activeSpaceId = await getActiveSpaceId(spaces);
-  const spacesUsed = spaces.length;
+  // Free/Pro space limit counts owned spaces only (022); invited memberships do not count.
+  const spacesUsed = spaces.filter((s) => s.role === "owner" && !s.archived_at).length;
 
   let membersUsed = 0;
   if (activeSpaceId) {
