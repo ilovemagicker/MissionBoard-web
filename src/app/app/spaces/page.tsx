@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/app-shell";
 import { SpacesClient } from "@/components/spaces-client";
+import { normalizeShareCode } from "@/lib/deep-links";
 import { createClient } from "@/lib/supabase/server";
 import {
   getActiveSpaceId,
@@ -11,10 +12,24 @@ import type { JoinRequestRow, ProfileRow } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-export default async function SpacesPage() {
+export default async function SpacesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ invite?: string; family?: string; code?: string }>;
+}) {
   const locale = await getLocale();
   const { user, configured } = await getSession();
   if (!configured || !user) return null;
+
+  const sp = await searchParams;
+  const initialInvite = normalizeShareCode(sp.invite || sp.code);
+  const initialFamily = normalizeShareCode(sp.family);
+  // If someone passed a family code via invite/code, prefer family field.
+  const familyPrefill =
+    initialFamily ||
+    (/^MB-FAM-/i.test(initialInvite) ? initialInvite : "");
+  const invitePrefill =
+    familyPrefill && initialInvite === familyPrefill ? "" : initialInvite;
 
   const activeSpaces = await getSpacesForUser(user.id);
   const spaces = await getSpacesForUser(user.id, { includeArchived: true });
@@ -85,6 +100,8 @@ export default async function SpacesPage() {
         membersBySpace={membersBySpace}
         profiles={profiles}
         pendingRequests={pendingRequests}
+        initialInvite={invitePrefill || undefined}
+        initialFamilyCode={familyPrefill || undefined}
       />
     </AppShell>
   );

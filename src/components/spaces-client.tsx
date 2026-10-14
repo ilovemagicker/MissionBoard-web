@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState, useTransition } from "react";
+import { FormEvent, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   acceptJoinRequestAction,
@@ -32,6 +32,8 @@ export function SpacesClient({
   membersBySpace,
   profiles,
   pendingRequests,
+  initialInvite,
+  initialFamilyCode,
 }: {
   locale: Locale;
   spaces: SpaceWithRole[];
@@ -41,15 +43,23 @@ export function SpacesClient({
   >;
   profiles: Record<string, ProfileRow>;
   pendingRequests: (JoinRequestRow & { space_name?: string })[];
+  /** Prefill from `/app/spaces?invite=` deep link */
+  initialInvite?: string;
+  /** Prefill from `/app/spaces?family=` deep link */
+  initialFamilyCode?: string;
 }) {
   const router = useRouter();
   const { entitlements, ready } = useEntitlements();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [info, setInfo] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(
+    initialInvite || initialFamilyCode
+      ? t(locale, "deepLinkCodePrefill")
+      : null
+  );
   const [name, setName] = useState("");
-  const [invite, setInvite] = useState("");
-  const [familyCode, setFamilyCode] = useState("");
+  const [invite, setInvite] = useState(initialInvite ?? "");
+  const [familyCode, setFamilyCode] = useState(initialFamilyCode ?? "");
   const [familyPreview, setFamilyPreview] = useState<string | null>(null);
   const [transferFor, setTransferFor] = useState<string | null>(null);
   const [transferTarget, setTransferTarget] = useState<string>("");
@@ -60,6 +70,31 @@ export function SpacesClient({
     setWallKind(kind);
     setWallOpen(true);
   }
+
+  // Deep link: preview family share code when landed with ?family=
+  useEffect(() => {
+    const code = (initialFamilyCode ?? "").trim();
+    if (!code) return;
+    let cancelled = false;
+    (async () => {
+      const res = await lookupScheduleShareCodeAction(code);
+      if (cancelled) return;
+      if (res.error) {
+        setError(res.error);
+        return;
+      }
+      if (res.spaceName) {
+        setFamilyPreview(res.spaceName);
+        setInfo(
+          t(locale, "scheduleRedeemPreview").replace("{name}", res.spaceName)
+        );
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialFamilyCode]);
 
   function run(fn: () => Promise<{ error?: string; ok?: boolean; invite_code?: string; spaceName?: string }>) {
     setError(null);

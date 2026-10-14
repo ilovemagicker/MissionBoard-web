@@ -4,16 +4,32 @@ import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { LocaleToggle } from "@/components/locale-toggle";
 import { signOutAction } from "@/app/actions/auth";
+import { sanitizeNextPath } from "@/lib/deep-links";
 import { t, tf } from "@/lib/i18n";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import type { Locale } from "@/lib/types";
 
-export function LoginForm({ locale }: { locale: Locale }) {
+export function LoginForm({
+  locale,
+  next = "/app/missions",
+  authError,
+}: {
+  locale: Locale;
+  next?: string;
+  authError?: string;
+}) {
+  const safeNext = sanitizeNextPath(next);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
-  const [message, setMessage] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(
+    authError === "auth"
+      ? t(locale, "loginFailed")
+      : authError === "config"
+        ? t(locale, "envMissing")
+        : null
+  );
   const [busy, setBusy] = useState(false);
   const [loggedInEmail, setLoggedInEmail] = useState<string | null>(null);
 
@@ -41,7 +57,7 @@ export function LoginForm({ locale }: { locale: Locale }) {
           password,
         });
         if (error) throw error;
-        window.location.href = "/app/missions";
+        window.location.href = safeNext;
       } else {
         const { data, error } = await supabase.auth.signUp({
           email,
@@ -55,7 +71,7 @@ export function LoginForm({ locale }: { locale: Locale }) {
         });
         if (error) throw error;
         if (data.session) {
-          window.location.href = "/app/missions";
+          window.location.href = safeNext;
           return;
         }
         setMessage(t(locale, "signupSuccessVerify"));
@@ -77,10 +93,15 @@ export function LoginForm({ locale }: { locale: Locale }) {
     setBusy(true);
     try {
       const supabase = createClient();
+      const redirectTo = new URL(
+        "/auth/callback",
+        window.location.origin
+      );
+      redirectTo.searchParams.set("next", safeNext);
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: redirectTo.toString(),
         },
       });
       if (error) throw error;
@@ -117,7 +138,7 @@ export function LoginForm({ locale }: { locale: Locale }) {
             </span>
             <div className="flex gap-2">
               <Link
-                href="/app/missions"
+                href={safeNext}
                 className="font-semibold text-blue-600"
               >
                 {t(locale, "goToApp")}

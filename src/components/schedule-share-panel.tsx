@@ -5,6 +5,7 @@ import {
   ensureScheduleShareCodeAction,
   rotateScheduleShareCodeAction,
 } from "@/app/actions/schedule-share";
+import { familyShareDeepLink } from "@/lib/deep-links";
 import { t } from "@/lib/i18n";
 import type { Locale } from "@/lib/types";
 
@@ -72,6 +73,20 @@ export function ScheduleSharePanel({
     }
   }
 
+  async function onCopyLink() {
+    if (!code) return;
+    try {
+      const path = familyShareDeepLink(code);
+      const url = `${window.location.origin}${path}`;
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setOkMsg(t(locale, "scheduleShareLinkCopied"));
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setError(t(locale, "scheduleShareCopyFailed"));
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
       <div
@@ -123,7 +138,7 @@ export function ScheduleSharePanel({
           </p>
         ) : null}
 
-        <div className="mt-5 grid gap-2 sm:grid-cols-2">
+        <div className="mt-5 grid gap-2 sm:grid-cols-3">
           <button
             type="button"
             disabled={pending || !code}
@@ -133,6 +148,14 @@ export function ScheduleSharePanel({
             {copied
               ? t(locale, "scheduleShareCopied")
               : t(locale, "scheduleShareCopy")}
+          </button>
+          <button
+            type="button"
+            disabled={pending || !code}
+            onClick={() => void onCopyLink()}
+            className="inline-flex h-11 items-center justify-center rounded-xl bg-white px-3 text-sm font-semibold text-indigo-700 ring-1 ring-indigo-200 hover:bg-indigo-50 disabled:opacity-60"
+          >
+            {t(locale, "scheduleShareCopyLink")}
           </button>
           <button
             type="button"
