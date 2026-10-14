@@ -212,3 +212,66 @@ export type MissionRecurrenceRow = {
 };
 
 export type RecurrenceEndMode = "never" | "onDate" | "afterCount";
+
+/** 032 — in-task polls */
+export type MissionPollRow = {
+  id: string;
+  mission_id: string;
+  space_id: string;
+  created_by: string;
+  question: string;
+  allow_multiple: boolean;
+  anonymous: boolean;
+  deadline_at: string | null;
+  closed_at: string | null;
+  closed_by: string | null;
+  final_option_ids: string[];
+  created_at: string;
+};
+
+export type MissionPollOptionRow = {
+  id: string;
+  poll_id: string;
+  position: number;
+  label: string;
+};
+
+export type MissionPollVoteRow = {
+  poll_id: string;
+  option_id: string;
+  user_id: string;
+  created_at?: string;
+};
+
+export type MissionPollResultRow = {
+  poll_id: string;
+  option_id: string;
+  vote_count: number;
+  voter_count: number;
+};
+
+/** 032/034 — mission_id null = space-level (034) */
+export type MissionAnnouncementRow = {
+  id: string;
+  mission_id: string | null;
+  space_id: string;
+  author_id: string;
+  body: string;
+  pinned: boolean;
+  created_at: string;
+  updated_at: string;
+  /** 034 — optional headline for space announcements */
+  title?: string | null;
+};
+
+export type MissionAnnouncementReadRow = {
+  announcement_id: string;
+  user_id: string;
+  read_at?: string;
+};
+
+export type AnnouncementDismissalRow = {
+  announcement_id: string;
+  user_id: string;
+  dismissed_at?: string;
+};

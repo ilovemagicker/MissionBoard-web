@@ -7,3 +7,17 @@ export function formatError(err: unknown, fallback = "Something went wrong"): st
   }
   return fallback;
 }
+
+export function isSchemaMissingError(err: unknown): boolean {
+  const msg = formatError(err).toLowerCase();
+  return (
+    msg.includes("does not exist") ||
+    msg.includes("could not find the table") ||
+    msg.includes("could not find the function") ||
+    msg.includes("schema cache") ||
+    msg.includes("42p01") ||
+    msg.includes("42703") ||
+    msg.includes("pgrst205") ||
+    msg.includes("pgrst202")
+  );
+}

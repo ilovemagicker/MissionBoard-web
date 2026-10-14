@@ -9,7 +9,14 @@ import {
   getSession,
   getSpacesForUser,
 } from "@/lib/session";
-import type { MissionRow } from "@/lib/types";
+import { isSchemaMissingError } from "@/lib/errors";
+import type {
+  AnnouncementDismissalRow,
+  MissionAnnouncementReadRow,
+  MissionAnnouncementRow,
+  MissionRow,
+  ProfileRow,
+} from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -88,6 +95,63 @@ export default async function MissionsPage({
     }
   }
 
+  let spaceAnnouncementsEnabled = true;
+  let spaceAnnouncements: MissionAnnouncementRow[] = [];
+  let spaceAnnouncementReads: MissionAnnouncementReadRow[] = [];
+  let spaceDismissals: AnnouncementDismissalRow[] = [];
+  const announcementProfiles: Record<string, ProfileRow> = {};
+  const spaceAnnouncementReadCounts: Record<string, number> = {};
+  const myRole =
+    spaces.find((s) => s.id === activeSpaceId)?.role ?? null;
+
+  if (activeSpaceId) {
+    const { data: annRows, error: annErr } = await supabase
+      .from("mission_announcements")
+      .select(
+        "id,mission_id,space_id,author_id,body,pinned,created_at,updated_at,title"
+      )
+      .eq("space_id", activeSpaceId)
+      .is("mission_id", null)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (annErr) {
+      if (isSchemaMissingError(annErr)) spaceAnnouncementsEnabled = false;
+    } else {
+      spaceAnnouncements = (annRows as MissionAnnouncementRow[]) ?? [];
+      const ids = spaceAnnouncements.map((a) => a.id);
+      if (ids.length > 0) {
+        const [{ data: readRows }, { data: dismissRows }] = await Promise.all([
+          supabase
+            .from("mission_announcement_reads")
+            .select("announcement_id,user_id,read_at")
+            .in("announcement_id", ids),
+          supabase
+            .from("announcement_dismissals")
+            .select("announcement_id,user_id,dismissed_at")
+            .eq("user_id", user.id)
+            .in("announcement_id", ids),
+        ]);
+        spaceAnnouncementReads =
+          (readRows as MissionAnnouncementReadRow[]) ?? [];
+        spaceDismissals = (dismissRows as AnnouncementDismissalRow[]) ?? [];
+        for (const r of spaceAnnouncementReads) {
+          spaceAnnouncementReadCounts[r.announcement_id] =
+            (spaceAnnouncementReadCounts[r.announcement_id] ?? 0) + 1;
+        }
+        const pids = new Set(spaceAnnouncements.map((a) => a.author_id));
+        if (pids.size > 0) {
+          const { data: prefs } = await supabase
+            .from("profiles")
+            .select("id,display_name,avatar_url")
+            .in("id", Array.from(pids));
+          for (const p of prefs ?? []) {
+            announcementProfiles[p.id as string] = p as ProfileRow;
+          }
+        }
+      }
+    }
+  }
+
   return (
     <AppShell
       locale={locale}
@@ -113,6 +177,15 @@ export default async function MissionsPage({
           stepCounts={stepCounts}
           showArchived={showArchived}
           spaceId={activeSpaceId}
+          myRole={myRole}
+          spaceAnnouncementsEnabled={spaceAnnouncementsEnabled}
+          spaceAnnouncements={spaceAnnouncements}
+          spaceDismissedIds={spaceDismissals.map((d) => d.announcement_id)}
+          spaceReadByMe={spaceAnnouncementReads
+            .filter((r) => r.user_id === user.id)
+            .map((r) => r.announcement_id)}
+          spaceAnnouncementReadCounts={spaceAnnouncementReadCounts}
+          announcementProfiles={announcementProfiles}
         />
       )}
     </AppShell>

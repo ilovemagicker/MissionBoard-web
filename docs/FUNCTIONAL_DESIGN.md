@@ -56,6 +56,7 @@
 | S7 | 轉讓擁有者 | ✅ | `transfer_space_ownership` UI（owner 選成員 → 確認） |
 | S8 | 封存／刪除空間 | ✅ | 對齊 `archive_space` / `unarchive_space` / `delete_space` |
 | S9 | 空間切換器 | ✅ | 全域 active space |
+| S10 | 空間公告 | ✅ | 任務列表頂部；owner／admin 發佈；收起／已讀；鏡像 `034` |
 
 ### 3.2 Missions（任務）
 
@@ -71,6 +72,8 @@
 | M12 | 決策人核准 | ✅ | 指定成員；請求／核准／退回 RPC；待核准篩選 |
 | M13 | 週期／重複任務 | ✅ | `mission_recurrences`；建立／管理／停止／恢復／移除；產生靠 server cron（`031`／`036`） |
 | M14 | 開始提醒 | ⏳ | `030` 已鏡像；Web 開始時間／提醒 UI 未做（push 為 mobile） |
+| M15 | 任務投票 | ✅ | 建立／投票／結束／刪除；單選／複選／匿名／截止；鏡像 `032` |
+| M16 | 任務公告板 | ✅ | 任務頂部釘選公告；空間編輯者可發；鏡像 `032` |
 | M7 | 我要進行中 | ✅ | toggle worker |
 | M8 | 已讀紀錄 | ✅ | 開啟詳情寫 reader；點 Chip 看誰／何時（`read_at`） |
 | M9 | 封存／刪除任務 | ✅ | `archive_mission` / `unarchive_mission` + DELETE |
@@ -125,6 +128,7 @@
 | A2 | 已讀狀態 | ✅ | localStorage last-seen timestamp（無 `is_read` 欄） |
 | A3 | 點進任務 | ✅ | 有 `mission_id` 時連到 `/app/missions/[id]` |
 | A4 | Realtime | ✅ | subscribe `activity_events` by `space_id`；任務列表輕量 realtime |
+| A5 | 投票／公告動態 | ✅ | `poll_created`／`poll_closed`／`announcement_posted`／`space_announcement_posted` 標籤 |
 
 > 註：需在 Supabase 執行 `006_activity_events.sql`，並確認 Dashboard → Replication 已啟用 `activity_events`（與可選 `missions`）。
 >
@@ -226,6 +230,6 @@
 
 ## 9. 下一步
 
-**Wave 1 / Wave 2 已完成；Wave 3 已補轉讓擁有者 + Activity/Realtime + 真實 Pro 讀取 + 任務優先度／決策人。** 之後可選週期任務／投票公告／巢狀步驟、deep link、Web Push。  
+**Wave 1 / Wave 2 已完成；Wave 3 已補轉讓擁有者 + Activity/Realtime + 真實 Pro 讀取 + 任務優先度／決策人 + 週期／巢狀步驟 + 投票／公告。** 之後可選開始提醒 UI、deep link、Web Push。  
 **必須：** 在 Supabase SQL Editor 執行 `006_activity_events.sql` 與 `007_step_claim_requests.sql`（見 web `supabase/migrations/` 或 iOS 同名檔），並在 Dashboard → Database → Publications / Realtime 確認 `activity_events`（與可選 `missions`）已加入。  
 UI 在功能可用後再統一視覺（可對齊 iOS 的藍＋卡片語言）。
