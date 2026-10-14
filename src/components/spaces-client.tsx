@@ -71,10 +71,12 @@ export function SpacesClient({
 
   function onCreate(e: FormEvent) {
     e.preventDefault();
-    // Soft wall: only count non-archived spaces (same as "my spaces" list for create).
-    const activeCount = spaces.filter((s) => !s.archived_at).length;
+    // Soft wall: owned non-archived spaces only (022 SPACE_LIMIT).
+    const ownedCount = spaces.filter(
+      (s) => s.role === "owner" && !s.archived_at
+    ).length;
     if (ready) {
-      const check = precheckCreateSpace(entitlements, activeCount);
+      const check = precheckCreateSpace(entitlements, ownedCount);
       if (check.status === "blocked") {
         openWall(check.kind);
         return;

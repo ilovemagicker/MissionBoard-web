@@ -28,7 +28,7 @@ export default async function CalendarPage() {
     const { data, error } = await supabase
       .from("missions")
       .select(
-        "id,space_id,title,description,start_date,due_date,status,flag_icon,creator_id,created_at,updated_at,archived_at"
+        "id,space_id,title,description,start_date,due_date,status,flag_icon,creator_id,created_at,updated_at,archived_at,priority,decision_maker_id,decision_requested_at,decision_requested_by,decision_approved_at,decision_approved_by"
       )
       .eq("space_id", activeSpaceId)
       .is("archived_at", null)

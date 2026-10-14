@@ -8,7 +8,7 @@
 - Web 是完整客戶端，不是只讀儀表板（MVP 後要能建立／編輯）。
 - 權限一律靠 Supabase RLS；前端不另發明後門。
 - 文案預設繁中，可切換 English（與 iOS 一致）。
-- 不做廣告；之後 Free／Pro 額度與 iOS 共用規則。
+- 不做廣告；Free／Pro 額度與 iOS 共用 `user_entitlements`（Web 讀取；購買在 App Store／Play）。
 
 ---
 
@@ -64,9 +64,11 @@
 | M1 | 列表（目前空間） | ✅ | 標題、狀態、截止、步驟進度、已讀／進行中數 |
 | M2 | 搜尋＋篩選 | ✅ | All／Active／Done；進階：我的／逾期／指派給我 |
 | M3 | 顯示封存 | ✅ | toggle show archived (`?archived=1`) |
-| M4 | 建立任務 | ✅ | 標題、說明、開始／截止、可選 AI stub 步驟 |
-| M5 | 任務詳情 | ✅ | 狀態、說明、日期、圖示、已讀／進行中、步驟、留言 |
-| M6 | 更新狀態 | ✅ | todo／inProgress／done |
+| M4 | 建立任務 | ✅ | 標題、說明、開始／截止、優先度（預設中）、可選決策人 |
+| M5 | 任務詳情 | ✅ | 狀態、說明、日期、圖示、已讀／進行中、步驟、留言、優先度／決策 |
+| M6 | 更新狀態 | ✅ | todo／inProgress／done（有決策人時需核准才可 done） |
+| M11 | 優先度 | ✅ | high／medium／low／無；列表徽章與篩選；鏡像 `029` |
+| M12 | 決策人核准 | ✅ | 指定成員；請求／核准／退回 RPC；待核准篩選 |
 | M7 | 我要進行中 | ✅ | toggle worker |
 | M8 | 已讀紀錄 | ✅ | 開啟詳情寫 reader；點 Chip 看誰／何時（`read_at`） |
 | M9 | 封存／刪除任務 | ✅ | `archive_mission` / `unarchive_mission` + DELETE |
@@ -164,7 +166,7 @@
 
 - ✅ 轉讓擁有者 UI  
 - ✅ Activity + `activity_events` + Realtime  
-- ⏳ Free／Pro 額度 UI  
+- ✅ Free／Pro 額度 UI（讀 `user_entitlements`；checkout stub／導向 App）  
 - ⏳ 與 iOS deep link／分享連結  
 - ⏳ Web Push  
 - 行銷站與 App shell 分離（可選）  
@@ -221,6 +223,6 @@
 
 ## 9. 下一步
 
-**Wave 1 / Wave 2 已完成；Wave 3 已補轉讓擁有者 + Activity/Realtime。** 之後可選額度 UI、deep link、Web Push。  
+**Wave 1 / Wave 2 已完成；Wave 3 已補轉讓擁有者 + Activity/Realtime + 真實 Pro 讀取 + 任務優先度／決策人。** 之後可選週期任務／投票公告／巢狀步驟、deep link、Web Push。  
 **必須：** 在 Supabase SQL Editor 執行 `006_activity_events.sql` 與 `007_step_claim_requests.sql`（見 web `supabase/migrations/` 或 iOS 同名檔），並在 Dashboard → Database → Publications / Realtime 確認 `activity_events`（與可選 `missions`）已加入。  
 UI 在功能可用後再統一視覺（可對齊 iOS 的藍＋卡片語言）。

@@ -1,5 +1,7 @@
 export type SpaceRole = "owner" | "admin" | "member";
 export type MissionStatus = "todo" | "inProgress" | "done";
+/** 029: high | medium | low | null (= none). New tasks default to medium on create. */
+export type MissionPriority = "high" | "medium" | "low";
 export type Locale = "zh-Hant" | "en";
 
 export type SpaceWithRole = {
@@ -23,6 +25,13 @@ export type MissionRow = {
   created_at: string;
   updated_at: string;
   archived_at: string | null;
+  /** 029 — may be missing if migration not applied. */
+  priority?: MissionPriority | null;
+  decision_maker_id?: string | null;
+  decision_requested_at?: string | null;
+  decision_requested_by?: string | null;
+  decision_approved_at?: string | null;
+  decision_approved_by?: string | null;
 };
 
 export type MissionStepRow = {

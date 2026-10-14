@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/config";
 import { formatError } from "@/lib/errors";
-import type { MissionStatus } from "@/lib/types";
+import type { MissionPriority, MissionStatus } from "@/lib/types";
 
 async function requireAuthedClient() {
   if (!isSupabaseConfigured()) throw new Error("Supabase not configured");
@@ -25,6 +25,15 @@ export async function createMissionAction(formData: FormData) {
     const description = String(formData.get("description") || "").trim();
     const startDate = String(formData.get("start_date") || "") || null;
     const dueDate = String(formData.get("due_date") || "") || null;
+    const priorityRaw = String(formData.get("priority") || "medium");
+    const priority =
+      priorityRaw === "high" || priorityRaw === "medium" || priorityRaw === "low"
+        ? priorityRaw
+        : priorityRaw === "none"
+          ? null
+          : "medium";
+    const decisionMakerRaw = String(formData.get("decision_maker_id") || "").trim();
+    const decisionMakerId = decisionMakerRaw || null;
 
     if (!spaceId || !title) throw new Error("Title and space are required");
 
@@ -38,6 +47,8 @@ export async function createMissionAction(formData: FormData) {
         due_date: dueDate,
         status: "todo",
         creator_id: user.id,
+        priority,
+        decision_maker_id: decisionMakerId,
       })
       .select("id")
       .single();
@@ -352,6 +363,87 @@ export async function deleteMissionAction(missionId: string) {
     ) {
       throw err;
     }
+    return { error: formatError(err) };
+  }
+}
+
+export async function updateMissionPriorityAction(
+  missionId: string,
+  priority: MissionPriority | null
+) {
+  try {
+    const { supabase } = await requireAuthedClient();
+    const { error } = await supabase
+      .from("missions")
+      .update({ priority })
+      .eq("id", missionId);
+    if (error) throw error;
+    revalidatePath(`/app/missions/${missionId}`);
+    revalidatePath("/app/missions");
+    return { ok: true as const };
+  } catch (err) {
+    return { error: formatError(err) };
+  }
+}
+
+export async function updateMissionDecisionMakerAction(
+  missionId: string,
+  decisionMakerId: string | null
+) {
+  try {
+    const { supabase } = await requireAuthedClient();
+    const { error } = await supabase
+      .from("missions")
+      .update({ decision_maker_id: decisionMakerId })
+      .eq("id", missionId);
+    if (error) throw error;
+    revalidatePath(`/app/missions/${missionId}`);
+    revalidatePath("/app/missions");
+    return { ok: true as const };
+  } catch (err) {
+    return { error: formatError(err) };
+  }
+}
+
+export async function requestMissionDecisionAction(missionId: string) {
+  try {
+    const { supabase } = await requireAuthedClient();
+    const { error } = await supabase.rpc("request_mission_decision", {
+      p_mission_id: missionId,
+    });
+    if (error) throw error;
+    revalidatePath(`/app/missions/${missionId}`);
+    return { ok: true as const };
+  } catch (err) {
+    return { error: formatError(err) };
+  }
+}
+
+export async function approveMissionDecisionAction(missionId: string) {
+  try {
+    const { supabase } = await requireAuthedClient();
+    const { error } = await supabase.rpc("approve_mission_decision", {
+      p_mission_id: missionId,
+    });
+    if (error) throw error;
+    revalidatePath(`/app/missions/${missionId}`);
+    revalidatePath("/app/missions");
+    return { ok: true as const };
+  } catch (err) {
+    return { error: formatError(err) };
+  }
+}
+
+export async function returnMissionDecisionAction(missionId: string) {
+  try {
+    const { supabase } = await requireAuthedClient();
+    const { error } = await supabase.rpc("return_mission_decision", {
+      p_mission_id: missionId,
+    });
+    if (error) throw error;
+    revalidatePath(`/app/missions/${missionId}`);
+    return { ok: true as const };
+  } catch (err) {
     return { error: formatError(err) };
   }
 }

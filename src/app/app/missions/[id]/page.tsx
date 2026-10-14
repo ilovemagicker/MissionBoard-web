@@ -40,7 +40,7 @@ export default async function MissionDetailPage({
   const { data: mission, error } = await supabase
     .from("missions")
     .select(
-      "id,space_id,title,description,start_date,due_date,status,flag_icon,creator_id,created_at,updated_at,archived_at"
+      "id,space_id,title,description,start_date,due_date,status,flag_icon,creator_id,created_at,updated_at,archived_at,priority,decision_maker_id,decision_requested_at,decision_requested_by,decision_approved_at,decision_approved_by"
     )
     .eq("id", id)
     .maybeSingle();
@@ -101,6 +101,9 @@ export default async function MissionDetailPage({
   for (const r of readers) profileIds.add(r.user_id);
   for (const w of workers) profileIds.add(w.user_id);
   for (const c of claimRows ?? []) profileIds.add(c.requester_id as string);
+  if (mission.decision_maker_id) profileIds.add(mission.decision_maker_id as string);
+  if (mission.decision_requested_by) profileIds.add(mission.decision_requested_by as string);
+  if (mission.decision_approved_by) profileIds.add(mission.decision_approved_by as string);
 
   const profiles: Record<string, ProfileRow> = {};
   if (profileIds.size > 0) {
