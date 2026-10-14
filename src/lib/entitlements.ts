@@ -1,7 +1,10 @@
 /**
- * Mock entitlements aligned with iOS EntitlementsService.
+ * Entitlements aligned with iOS EntitlementsService / StoreKit Pro.
  * Free by default; localStorage debug toggle can force Pro for testing.
- * No real billing — checkout is a stub.
+ * Production source of truth: Supabase `public.user_entitlements`
+ * (written by iOS → Edge Function `verify-apple-entitlement`).
+ * Server enforces SPACE_LIMIT / MEMBER_LIMIT in migration 022.
+ * Web checkout remains App Store / iOS-first; this module reads plan for UI gates.
  */
 
 export type Plan = "free" | "pro";
@@ -114,3 +117,22 @@ export const PLAN_COMPARE = {
   members: { free: 5, pro: 25 },
   ai: { free: "~20", pro: "~300" },
 } as const;
+
+
+/** Map a `user_entitlements` row (or null) to plan. */
+export function planFromEntitlementRow(row: {
+  is_pro_active?: boolean;
+  expires_at?: string | null;
+} | null | undefined): Plan {
+  if (!row?.is_pro_active) return "free";
+  if (row.expires_at && new Date(row.expires_at).getTime() <= Date.now()) return "free";
+  return "pro";
+}
+
+/** Owned-space count helper — invited memberships must not count. */
+export function precheckCreateOwnedSpace(
+  ents: Entitlements | null,
+  ownedSpaceCount: number
+): PrecheckResult {
+  return precheckCreateSpace(ents, ownedSpaceCount);
+}
