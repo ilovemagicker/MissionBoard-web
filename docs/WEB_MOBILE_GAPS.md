@@ -3,7 +3,7 @@
 產品名：**Work Assistants**／任務助理。Repo 仍為 `MissionBoard-web`。  
 後端：與 MissionBoard-iOS 同一 Supabase；canonical migrations 在 iOS repo，`web/supabase/migrations` 僅鏡像。
 
-更新日期：2026-10-14（投票／空間公告）
+更新日期：2026-10-14（開始提醒 UI）
 
 ## 已上線（Web）
 
@@ -23,6 +23,7 @@
 - 任務 **巢狀步驟**：`parent_step_id`；詳情樹狀縮排、降一層／升一層、新增子步驟；父步驟完成由子步驟決定；列表步驟進度只計 leaf。鏡像 `033`
 - 任務 **投票（032）**：任務詳情可建立／投票／結束／刪除；單選／複選、匿名、截止；結果條與最終選項；RPC `create_mission_poll`／`cast_poll_vote`／`close_mission_poll`／`delete_mission_poll`／`poll_results`
 - 空間／任務 **公告（032／034）**：任務頂部公告板（編輯者可發）；任務列表頂部空間公告（僅 owner／admin 發佈；收起／全部列表／已讀）；鏡像 `032`／`034`
+- 任務 **開始提醒（030）**：建立／詳情可設開始時間（`start_time_minutes`）、時區、提醒提前期（null＝收件人預設／0＝不提醒／15／60／1440）；設定頁可改個人預設與開關（`user_notification_preferences`）。推播仍由 server cron → APNs／FCM（mobile）；Web 不實作 Web Push
 
 ## 排班相對 mobile 缺口（優先下一波）
 
@@ -38,7 +39,7 @@
 
 - 「我的」完整頁（個人檔、通知偏好、刪帳）— Web 有設定／方案 stub
 - Push（Web Push 後期；APNs／FCM 為 mobile）
-- 任務：~~優先級／決策~~ ✅（`029`）；~~週期任務~~ ✅（`031`／`036`）；~~巢狀步驟~~ ✅（`033`）；~~投票／公告~~ ✅（`032`／`034`）；開始提醒 UI（`030` 已鏡像，Web 編輯 UI 待做）、步驟截止 push（`037`／`035`）仍缺
+- 任務：~~優先級／決策~~ ✅（`029`）；~~週期任務~~ ✅（`031`／`036`）；~~巢狀步驟~~ ✅（`033`）；~~投票／公告~~ ✅（`032`／`034`）；~~開始提醒 UI~~ ✅（`030`；推播仍 mobile）；步驟截止 push（`037`／`035`）仍缺
 - ~~真實 entitlements 讀 `user_entitlements`~~ ✅（checkout 仍 iOS／Play 優先；無 Stripe）
 - 多語：Web 僅 zh-Hant／en；mobile 另有 ja／ko／zh-Hans
 
@@ -49,7 +50,7 @@
 3. ~~Admin 代建班／編輯他人／油漆模式~~ ✅  
 4. ~~請假／換班~~ ✅  
 5. ~~整月批次產生／undo batch~~ ✅  
-6. ~~排班分享／匯出（`015`）~~ ✅（client export）；~~真實 Pro 讀取~~ ✅；~~任務優先度／決策人（`029`）~~ ✅；~~週期任務（`031`／`036`）＋巢狀步驟（`033`）~~ ✅；~~投票／公告（`032`／`034`）~~ ✅；開始提醒 UI／步驟截止 push 待做  
+6. ~~排班分享／匯出（`015`）~~ ✅（client export）；~~真實 Pro 讀取~~ ✅；~~任務優先度／決策人（`029`）~~ ✅；~~週期任務（`031`／`036`）＋巢狀步驟（`033`）~~ ✅；~~投票／公告（`032`／`034`）~~ ✅；~~開始提醒 UI（`030`）~~ ✅；步驟截止 push（`037`／`035`）待做  
 
 Auth redirect（Cloudflare／自訂網域）：`https://app.onyxlab.dev/auth/callback`（與 Vercel 網域並存於 Supabase Redirect URLs）。
 

@@ -34,6 +34,19 @@ export type MissionRow = {
   decision_approved_by?: string | null;
   /** 031 — may be missing if migration not applied. */
   recurrence_id?: string | null;
+  /** 030 — start clock + reminder lead; may be missing if migration not applied. */
+  start_time_minutes?: number | null;
+  start_timezone?: string | null;
+  /** null = recipient default; 0 = off; 15 | 60 | 1440 */
+  start_reminder_minutes?: number | null;
+};
+
+export type StartReminderMinutes = 0 | 15 | 60 | 1440;
+
+export type UserNotificationPreferencesRow = {
+  user_id: string;
+  mission_start_reminder?: boolean;
+  mission_start_reminder_minutes?: number;
 };
 
 export type MissionStepRow = {

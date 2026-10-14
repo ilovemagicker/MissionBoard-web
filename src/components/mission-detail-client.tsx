@@ -27,6 +27,7 @@ import {
 import { MissionAnnouncementsPanel } from "@/components/mission-announcements-panel";
 import { MissionPollsPanel } from "@/components/mission-polls-panel";
 import { MissionRecurrencePanel } from "@/components/mission-recurrence-panel";
+import { MissionStartReminderPanel } from "@/components/mission-start-reminder-panel";
 import { roleLabel, statusLabel, t, tf } from "@/lib/i18n";
 import { formatDateTime } from "@/lib/format";
 import {
@@ -75,6 +76,7 @@ export function MissionDetailClient({
   pollResults = [],
   announcements = [],
   announcementReadCounts = {},
+  startReminderEnabled = false,
 }: {
   locale: Locale;
   mission: MissionRow;
@@ -95,6 +97,7 @@ export function MissionDetailClient({
   pollResults?: MissionPollResultRow[];
   announcements?: MissionAnnouncementRow[];
   announcementReadCounts?: Record<string, number>;
+  startReminderEnabled?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -228,7 +231,13 @@ export function MissionDetailClient({
               </p>
             )}
             <p className="mt-2 text-xs text-slate-500">
-              {mission.start_date ? `${t(locale, "startDate")}: ${mission.start_date}` : ""}
+              {mission.start_date
+                ? `${t(locale, "startDate")}: ${mission.start_date}${
+                    mission.start_time_minutes != null
+                      ? ` ${String(Math.floor(mission.start_time_minutes / 60)).padStart(2, "0")}:${String(mission.start_time_minutes % 60).padStart(2, "0")}`
+                      : ""
+                  }`
+                : ""}
               {mission.start_date && mission.due_date ? " · " : ""}
               {mission.due_date ? `${t(locale, "dueDate")}: ${mission.due_date}` : ""}
             </p>
@@ -333,6 +342,14 @@ export function MissionDetailClient({
         }
         canDelete={(p) => p.created_by === userId || isAdminLike}
         enabled={pollsEnabled}
+        isArchived={isArchived}
+      />
+
+      <MissionStartReminderPanel
+        locale={locale}
+        mission={mission}
+        enabled={startReminderEnabled}
+        canEdit={canEditMeta}
         isArchived={isArchived}
       />
 

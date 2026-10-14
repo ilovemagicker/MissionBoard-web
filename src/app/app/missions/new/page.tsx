@@ -9,6 +9,7 @@ import {
   getSession,
   getSpacesForUser,
 } from "@/lib/session";
+import { isSchemaMissingError } from "@/lib/errors";
 import type { ProfileRow } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +25,16 @@ export default async function NewMissionPage() {
 
   let members: { user_id: string; role: string }[] = [];
   const profiles: Record<string, ProfileRow> = {};
+  let startReminderEnabled = true;
+  {
+    const { error: probeErr } = await supabase
+      .from("missions")
+      .select("start_time_minutes")
+      .limit(1);
+    if (probeErr && isSchemaMissingError(probeErr)) {
+      startReminderEnabled = false;
+    }
+  }
 
   if (activeSpaceId) {
     const { data: memberRows } = await supabase
@@ -67,6 +78,7 @@ export default async function NewMissionPage() {
           spaceId={activeSpaceId}
           members={members}
           profiles={profiles}
+          startReminderEnabled={startReminderEnabled}
         />
       )}
     </AppShell>
