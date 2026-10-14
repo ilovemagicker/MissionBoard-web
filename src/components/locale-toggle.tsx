@@ -1,29 +1,25 @@
 "use client";
 
 import { setLocaleAction } from "@/app/actions/prefs";
+import { LOCALE_LABELS, SUPPORTED_LOCALES } from "@/lib/i18n";
 import type { Locale } from "@/lib/types";
 
 export function LocaleToggle({ locale }: { locale: Locale }) {
   return (
-    <div className="inline-flex rounded-lg bg-slate-100 p-0.5 text-xs font-semibold">
-      <button
-        type="button"
-        onClick={() => setLocaleAction("zh-Hant")}
-        className={`rounded-md px-2 py-1 ${
-          locale === "zh-Hant" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"
-        }`}
+    <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600">
+      <span className="sr-only">{LOCALE_LABELS[locale]}</span>
+      <select
+        value={locale}
+        onChange={(e) => setLocaleAction(e.target.value)}
+        className="rounded-lg border border-slate-200 bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-800 shadow-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+        aria-label="Language"
       >
-        繁中
-      </button>
-      <button
-        type="button"
-        onClick={() => setLocaleAction("en")}
-        className={`rounded-md px-2 py-1 ${
-          locale === "en" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"
-        }`}
-      >
-        EN
-      </button>
-    </div>
+        {SUPPORTED_LOCALES.map((code) => (
+          <option key={code} value={code}>
+            {LOCALE_LABELS[code]}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }

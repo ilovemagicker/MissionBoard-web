@@ -32,7 +32,7 @@ import {
   toDateKey,
 } from "@/lib/calendar";
 import { dateLocale } from "@/lib/format";
-import { t } from "@/lib/i18n";
+import { t, weekdaysMonFirst } from "@/lib/i18n";
 import {
   formatMinutesLabel,
   minutesToTimeInput,
@@ -48,9 +48,6 @@ import type {
   ShiftSwapRequestRow,
   ShiftTemplateRow,
 } from "@/lib/types";
-
-const WEEKDAYS_ZH = ["一", "二", "三", "四", "五", "六", "日"];
-const WEEKDAYS_EN = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 const COLOR_PRESETS = [
   { bg: "#3B82F6", fg: "#FFFFFF" },
@@ -255,7 +252,7 @@ export function ScheduleClient({
   const [showExport, setShowExport] = useState(false);
   const [showShare, setShowShare] = useState(false);
 
-  const weekdays = locale === "en" ? WEEKDAYS_EN : WEEKDAYS_ZH;
+  const weekdays = weekdaysMonFirst(locale);
 
   const monthLabel = useMemo(
     () =>

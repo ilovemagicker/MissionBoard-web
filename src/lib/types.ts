@@ -2,7 +2,7 @@ export type SpaceRole = "owner" | "admin" | "member";
 export type MissionStatus = "todo" | "inProgress" | "done";
 /** 029: high | medium | low | null (= none). New tasks default to medium on create. */
 export type MissionPriority = "high" | "medium" | "low";
-export type Locale = "zh-Hant" | "en";
+export type Locale = "zh-Hant" | "zh-Hans" | "en" | "ja" | "ko";
 
 export type SpaceWithRole = {
   id: string;

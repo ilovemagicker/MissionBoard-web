@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { dateLocale } from "@/lib/format";
-import { t } from "@/lib/i18n";
+import { t, weekdaysMonFirst } from "@/lib/i18n";
 import {
   buildIcsCalendar,
   downloadBlob,
@@ -15,9 +15,6 @@ import {
 import type { Locale, ProfileRow, ShiftRow } from "@/lib/types";
 
 type Member = { user_id: string; role: string; nickname: string | null };
-
-const WEEKDAYS_ZH = ["一", "二", "三", "四", "五", "六", "日"];
-const WEEKDAYS_EN = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 type Scope = "mine" | "all" | "pick";
 
@@ -154,7 +151,7 @@ export function ScheduleExportPanel({
         rowUserIds,
         labels: {
           title: `${spaceName || t(locale, "scheduleTitle")} · ${monthLabel}`,
-          weekdays: locale === "en" ? WEEKDAYS_EN : WEEKDAYS_ZH,
+          weekdays: weekdaysMonFirst(locale),
           memberFallback: t(locale, "scheduleMemberFallback"),
           filterLabel,
           brand: t(locale, "appName"),

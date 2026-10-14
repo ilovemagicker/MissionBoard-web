@@ -14,11 +14,8 @@ import {
   toDateKey,
   type CalendarAppearance,
 } from "@/lib/calendar";
-import { statusLabel, t } from "@/lib/i18n";
+import { dateLocale, statusLabel, t, weekdaysMonFirst } from "@/lib/i18n";
 import type { Locale, MissionRow } from "@/lib/types";
-
-const WEEKDAYS_ZH = ["一", "二", "三", "四", "五", "六", "日"];
-const WEEKDAYS_EN = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 function appearanceLabel(locale: Locale, a: CalendarAppearance): string {
   if (a === "deadlineDay") return t(locale, "legendDeadlineDay");
@@ -42,7 +39,7 @@ export function CalendarClient({
   }, [selectedKey]);
 
   const monthLabel = useMemo(() => {
-    return cursor.toLocaleDateString(locale === "en" ? "en-US" : "zh-HK", {
+    return cursor.toLocaleDateString(dateLocale(locale), {
       year: "numeric",
       month: "long",
     });
@@ -111,7 +108,7 @@ export function CalendarClient({
     [missions, selectedDate]
   );
 
-  const weekdays = locale === "en" ? WEEKDAYS_EN : WEEKDAYS_ZH;
+  const weekdays = weekdaysMonFirst(locale);
 
   const dayHeading = useMemo(() => {
     const opts: Intl.DateTimeFormatOptions = {
@@ -121,7 +118,7 @@ export function CalendarClient({
       day: "numeric",
     };
     const label = selectedDate.toLocaleDateString(
-      locale === "en" ? "en-US" : "zh-HK",
+      dateLocale(locale),
       opts
     );
     if (selectedKey === toDateKey(new Date())) {
