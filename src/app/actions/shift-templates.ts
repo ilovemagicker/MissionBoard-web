@@ -24,6 +24,42 @@ function clampMinutes(n: number) {
   return Math.min(1439, Math.max(0, Math.floor(n)));
 }
 
+/** Resolve assignee: self always; other members only if caller is space admin/owner. */
+async function resolveShiftUserId(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  spaceId: string,
+  callerId: string,
+  requestedUserId: string | undefined
+): Promise<string> {
+  const target = requestedUserId?.trim() || callerId;
+  if (target === callerId) return callerId;
+
+  const { data: me, error: meErr } = await supabase
+    .from("space_members")
+    .select("role")
+    .eq("space_id", spaceId)
+    .eq("user_id", callerId)
+    .maybeSingle();
+  if (meErr) throw meErr;
+  const role = me?.role as string | undefined;
+  if (role !== "owner" && role !== "admin") {
+    throw new Error("Only space admin/owner can create shifts for others");
+  }
+
+  const { data: targetRow, error: targetErr } = await supabase
+    .from("space_members")
+    .select("user_id,role")
+    .eq("space_id", spaceId)
+    .eq("user_id", target)
+    .maybeSingle();
+  if (targetErr) throw targetErr;
+  if (!targetRow) throw new Error("Target is not a space member");
+  if ((targetRow.role as string) === "viewer") {
+    throw new Error("Cannot assign shifts to viewer members");
+  }
+  return target;
+}
+
 export async function createShiftTemplateAction(input: {
   spaceId: string;
   name: string;
@@ -129,17 +165,26 @@ export async function deleteShiftTemplateAction(id: string) {
   }
 }
 
-/** Apply a template as a shift for the current user on the given local day (YYYY-MM-DD). */
+/** Apply a template as a shift for the assignee on the given local day (YYYY-MM-DD). */
 export async function applyShiftTemplateAction(input: {
   spaceId: string;
   templateId: string;
   dayKey: string;
+  /** Assignee; defaults to current user. Admin/owner may set another member. */
+  userId?: string;
 }) {
   try {
     const { supabase, user } = await requireAuthedClient();
     if (!input.spaceId || !input.templateId || !/^\d{4}-\d{2}-\d{2}$/.test(input.dayKey)) {
       throw new Error("Space, template, and day are required");
     }
+
+    const assigneeId = await resolveShiftUserId(
+      supabase,
+      input.spaceId,
+      user.id,
+      input.userId
+    );
 
     const { data: template, error: fetchError } = await supabase
       .from("shift_templates")
@@ -163,7 +208,7 @@ export async function applyShiftTemplateAction(input: {
       .from("shifts")
       .insert({
         space_id: input.spaceId,
-        user_id: user.id,
+        user_id: assigneeId,
         start_at: start.toISOString(),
         end_at: end.toISOString(),
         title: (template.name as string)?.trim() || null,

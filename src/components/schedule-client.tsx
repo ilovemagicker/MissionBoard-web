@@ -26,6 +26,7 @@ import {
   formatMinutesLabel,
   minutesToTimeInput,
   timeInputToMinutes,
+  appliedRangeOnDay,
 } from "@/lib/shift-templates";
 import type { Locale, ProfileRow, ShiftRow, ShiftTemplateRow } from "@/lib/types";
 
@@ -47,6 +48,7 @@ type Member = { user_id: string; role: string; nickname: string | null };
 
 type FormState = {
   id?: string;
+  userId: string;
   startLocal: string;
   endLocal: string;
   title: string;
@@ -63,6 +65,11 @@ type TemplateFormState = {
   color: string;
   textColor: string;
 };
+
+/** Custom paint brush when no template is selected (start/end minutes). */
+type PaintBrush =
+  | { kind: "template"; templateId: string }
+  | { kind: "custom"; startMinutes: number; endMinutes: number; color: string; textColor: string; title: string };
 
 function pad2(n: number) {
   return String(n).padStart(2, "0");
@@ -104,6 +111,24 @@ function rangesOverlap(a0: Date, a1: Date, b0: Date, b1: Date) {
   return a0 < b1 && b0 < a1;
 }
 
+function isAdminLike(members: Member[], userId: string) {
+  const role = members.find((m) => m.user_id === userId)?.role;
+  return role === "owner" || role === "admin";
+}
+
+function editableMembers(members: Member[]) {
+  return members.filter((m) => m.role !== "viewer");
+}
+
+function canEditShift(
+  shift: ShiftRow,
+  currentUserId: string,
+  members: Member[]
+) {
+  if (shift.user_id === currentUserId) return true;
+  return isAdminLike(members, currentUserId);
+}
+
 function canEditTemplate(
   template: ShiftTemplateRow,
   currentUserId: string,
@@ -111,8 +136,7 @@ function canEditTemplate(
 ) {
   if (template.created_by === currentUserId) return true;
   if (template.owner_user_id === currentUserId) return true;
-  const role = members.find((m) => m.user_id === currentUserId)?.role;
-  return role === "owner" || role === "admin";
+  return isAdminLike(members, currentUserId);
 }
 
 function sortedTemplatesForUser(
@@ -123,10 +147,17 @@ function sortedTemplatesForUser(
   const shared = templates.filter(
     (t) => t.owner_user_id == null || t.owner_user_id === undefined
   );
-  // Prefer personal + shared (028); fall back to full space list.
   const preferred = [...mine, ...shared];
   if (preferred.length > 0) return preferred;
   return [...templates].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function shiftsOnDayForUser(
+  shiftsByDay: Map<string, ShiftRow[]>,
+  dayKey: string,
+  userId: string
+) {
+  return (shiftsByDay.get(dayKey) ?? []).filter((s) => s.user_id === userId);
 }
 
 export function ScheduleClient({
@@ -161,6 +192,20 @@ export function ScheduleClient({
   const [confirmDeleteTemplateId, setConfirmDeleteTemplateId] = useState<
     string | null
   >(null);
+
+  const isAdmin = isAdminLike(members, currentUserId);
+  const assignableMembers = useMemo(
+    () => editableMembers(members),
+    [members]
+  );
+
+  const [paintMode, setPaintMode] = useState(false);
+  const [paintTargetUserId, setPaintTargetUserId] = useState(currentUserId);
+  const [paintBrush, setPaintBrush] = useState<PaintBrush | null>(null);
+  const [lastPaintedId, setLastPaintedId] = useState<string | null>(null);
+  const [customPaintStart, setCustomPaintStart] = useState("09:00");
+  const [customPaintEnd, setCustomPaintEnd] = useState("17:00");
+  const [applyTargetUserId, setApplyTargetUserId] = useState(currentUserId);
 
   const weekdays = locale === "en" ? WEEKDAYS_EN : WEEKDAYS_ZH;
 
@@ -301,7 +346,7 @@ export function ScheduleClient({
       return false;
     }
     return shifts.some((s) => {
-      if (s.user_id !== currentUserId) return false;
+      if (s.user_id !== form.userId) return false;
       if (form.id && s.id === form.id) return false;
       return rangesOverlap(
         start,
@@ -310,11 +355,16 @@ export function ScheduleClient({
         new Date(s.end_at)
       );
     });
-  }, [form, shifts, currentUserId]);
+  }, [form, shifts]);
 
   const applyList = useMemo(
     () => sortedTemplatesForUser(templates, currentUserId),
     [templates, currentUserId]
+  );
+
+  const paintTemplates = useMemo(
+    () => sortedTemplatesForUser(templates, paintTargetUserId),
+    [templates, paintTargetUserId]
   );
 
   const templateOvernight = useMemo(() => {
@@ -325,10 +375,35 @@ export function ScheduleClient({
     );
   }, [templateForm]);
 
-  function openCreate() {
+  function enterPaintMode() {
+    setError(null);
+    setPaintMode(true);
+    setPaintTargetUserId(currentUserId);
+    const first = sortedTemplatesForUser(templates, currentUserId)[0];
+    if (first) {
+      setPaintBrush({ kind: "template", templateId: first.id });
+    } else {
+      setPaintBrush({
+        kind: "custom",
+        startMinutes: timeInputToMinutes(customPaintStart),
+        endMinutes: timeInputToMinutes(customPaintEnd),
+        color: COLOR_PRESETS[0].bg,
+        textColor: COLOR_PRESETS[0].fg,
+        title: "",
+      });
+    }
+  }
+
+  function exitPaintMode() {
+    setPaintMode(false);
+    setLastPaintedId(null);
+  }
+
+  function openCreate(forUserId?: string) {
     const { start, end } = defaultRange(selectedKey);
     setError(null);
     setForm({
+      userId: forUserId ?? currentUserId,
       startLocal: toLocalInput(start),
       endLocal: toLocalInput(end),
       title: "",
@@ -342,6 +417,7 @@ export function ScheduleClient({
     setError(null);
     setForm({
       id: shift.id,
+      userId: shift.user_id,
       startLocal: toLocalInput(new Date(shift.start_at)),
       endLocal: toLocalInput(new Date(shift.end_at)),
       title: shift.title ?? "",
@@ -365,7 +441,11 @@ export function ScheduleClient({
       };
       const result = form.id
         ? await updateShiftAction({ id: form.id, ...payload })
-        : await createShiftAction({ spaceId, ...payload });
+        : await createShiftAction({
+            spaceId,
+            ...payload,
+            userId: form.userId,
+          });
       if (result && "error" in result && result.error) {
         setError(result.error);
         return;
@@ -385,6 +465,7 @@ export function ScheduleClient({
         setError(result.error);
         return;
       }
+      if (lastPaintedId === id) setLastPaintedId(null);
       router.refresh();
     });
   }
@@ -449,20 +530,112 @@ export function ScheduleClient({
     });
   }
 
-  function applyTemplate(templateId: string) {
+  function applyTemplate(templateId: string, dayKey?: string, userId?: string) {
     setError(null);
     startTransition(async () => {
       const result = await applyShiftTemplateAction({
         spaceId,
         templateId,
-        dayKey: selectedKey,
+        dayKey: dayKey ?? selectedKey,
+        userId: userId ?? currentUserId,
       });
       if (result && "error" in result && result.error) {
         setError(result.error);
         return;
       }
+      if (result && "id" in result && result.id) {
+        setLastPaintedId(result.id);
+      }
       setShowApply(false);
       router.refresh();
+    });
+  }
+
+  function paintDay(dayKey: string) {
+    setSelectedKey(dayKey);
+    if (!paintBrush) {
+      setError(t(locale, "schedulePaintNeedTemplate"));
+      return;
+    }
+    const existing = shiftsOnDayForUser(
+      shiftsByDay,
+      dayKey,
+      paintTargetUserId
+    );
+    if (existing.length > 0) {
+      setError(t(locale, "schedulePaintOccupied"));
+      return;
+    }
+    setError(null);
+
+    if (paintBrush.kind === "template") {
+      applyTemplate(paintBrush.templateId, dayKey, paintTargetUserId);
+      return;
+    }
+
+    const brush = paintBrush;
+    startTransition(async () => {
+      const { start, end } = appliedRangeOnDay(
+        dayKey,
+        brush.startMinutes,
+        brush.endMinutes
+      );
+      const result = await createShiftAction({
+        spaceId,
+        startAt: start.toISOString(),
+        endAt: end.toISOString(),
+        title: brush.title,
+        color: brush.color,
+        textColor: brush.textColor,
+        userId: paintTargetUserId,
+      });
+      if (result && "error" in result && result.error) {
+        setError(result.error);
+        return;
+      }
+      if (result && "id" in result && result.id) {
+        setLastPaintedId(result.id);
+      }
+      router.refresh();
+    });
+  }
+
+  function undoLastPaint() {
+    if (!lastPaintedId) return;
+    const id = lastPaintedId;
+    setLastPaintedId(null);
+    startTransition(async () => {
+      const result = await deleteShiftAction(id);
+      if (result && "error" in result && result.error) {
+        setError(result.error);
+        setLastPaintedId(id);
+        return;
+      }
+      router.refresh();
+    });
+  }
+
+  function onCellClick(cell: {
+    key: string;
+    inMonth: boolean;
+    date: Date;
+  }) {
+    if (!cell.inMonth) setCursor(startOfMonth(cell.date));
+    if (paintMode) {
+      paintDay(cell.key);
+      return;
+    }
+    setSelectedKey(cell.key);
+  }
+
+  function selectCustomBrush() {
+    setPaintBrush({
+      kind: "custom",
+      startMinutes: timeInputToMinutes(customPaintStart),
+      endMinutes: timeInputToMinutes(customPaintEnd),
+      color: COLOR_PRESETS[0].bg,
+      textColor: COLOR_PRESETS[0].fg,
+      title: "",
     });
   }
 
@@ -473,6 +646,15 @@ export function ScheduleClient({
           {t(locale, "scheduleTitle")}
         </h1>
         <div className="flex flex-wrap gap-2">
+          {!paintMode ? (
+            <button
+              type="button"
+              onClick={enterPaintMode}
+              className="inline-flex h-10 items-center rounded-xl bg-violet-50 px-4 text-sm font-semibold text-violet-700 ring-1 ring-violet-200 hover:bg-violet-100"
+            >
+              {t(locale, "schedulePaintMode")}
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={() => {
@@ -483,15 +665,168 @@ export function ScheduleClient({
           >
             {t(locale, "scheduleTemplates")}
           </button>
-          <button
-            type="button"
-            onClick={openCreate}
-            className="inline-flex h-10 items-center rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"
-          >
-            {t(locale, "scheduleAdd")}
-          </button>
+          {!paintMode ? (
+            <button
+              type="button"
+              onClick={() => openCreate()}
+              className="inline-flex h-10 items-center rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"
+            >
+              {t(locale, "scheduleAdd")}
+            </button>
+          ) : null}
         </div>
       </div>
+
+      {paintMode ? (
+        <div className="rounded-3xl bg-violet-50 p-4 shadow-sm ring-1 ring-violet-200 sm:p-5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-sm font-bold text-violet-900">
+                {t(locale, "schedulePaintModeOn")}
+              </p>
+              <p className="mt-0.5 text-xs text-violet-700">
+                {t(locale, "schedulePaintHint")}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {lastPaintedId ? (
+                <button
+                  type="button"
+                  onClick={undoLastPaint}
+                  disabled={pending}
+                  className="inline-flex h-9 items-center rounded-xl bg-white px-3 text-sm font-semibold text-violet-800 ring-1 ring-violet-200 hover:bg-violet-100 disabled:opacity-60"
+                >
+                  {t(locale, "schedulePaintUndo")}
+                </button>
+              ) : null}
+              <button
+                type="button"
+                onClick={exitPaintMode}
+                className="inline-flex h-9 items-center rounded-xl bg-violet-700 px-3 text-sm font-semibold text-white hover:bg-violet-800"
+              >
+                {t(locale, "schedulePaintDone")}
+              </button>
+            </div>
+          </div>
+
+          {isAdmin ? (
+            <label className="mt-3 block text-xs font-semibold text-violet-800">
+              {t(locale, "schedulePaintTarget")}
+              <select
+                value={paintTargetUserId}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  setPaintTargetUserId(id);
+                  const first = sortedTemplatesForUser(templates, id)[0];
+                  if (first && paintBrush?.kind === "template") {
+                    setPaintBrush({ kind: "template", templateId: first.id });
+                  }
+                }}
+                className="mt-1 w-full max-w-xs rounded-xl border border-violet-200 bg-white px-3 py-2 text-sm text-slate-800"
+              >
+                {assignableMembers.map((m) => (
+                  <option key={m.user_id} value={m.user_id}>
+                    {m.user_id === currentUserId
+                      ? t(locale, "scheduleForMe")
+                      : memberLabel(
+                          m.user_id,
+                          members,
+                          profiles,
+                          t(locale, "scheduleMemberFallback")
+                        )}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            {paintTemplates.map((tmpl) => {
+              const active =
+                paintBrush?.kind === "template" &&
+                paintBrush.templateId === tmpl.id;
+              return (
+                <button
+                  key={tmpl.id}
+                  type="button"
+                  onClick={() =>
+                    setPaintBrush({ kind: "template", templateId: tmpl.id })
+                  }
+                  className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ring-2 ${
+                    active
+                      ? "ring-violet-700"
+                      : "ring-transparent hover:ring-violet-300"
+                  }`}
+                  style={{
+                    backgroundColor: tmpl.color || "#3B82F6",
+                    color: tmpl.text_color || "#FFFFFF",
+                  }}
+                >
+                  {tmpl.name}
+                  <span className="opacity-90">
+                    {formatMinutesLabel(tmpl.default_start_minutes)}–
+                    {formatMinutesLabel(tmpl.default_end_minutes)}
+                  </span>
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              onClick={selectCustomBrush}
+              className={`inline-flex items-center rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-violet-800 ring-2 ${
+                paintBrush?.kind === "custom"
+                  ? "ring-violet-700"
+                  : "ring-violet-200 hover:ring-violet-400"
+              }`}
+            >
+              {t(locale, "scheduleCustomTimes")}
+            </button>
+          </div>
+
+          {paintBrush?.kind === "custom" ? (
+            <div className="mt-3 flex flex-wrap items-end gap-3">
+              <label className="text-xs font-semibold text-violet-800">
+                {t(locale, "scheduleStart")}
+                <input
+                  type="time"
+                  value={customPaintStart}
+                  onChange={(e) => {
+                    setCustomPaintStart(e.target.value);
+                    setPaintBrush({
+                      kind: "custom",
+                      startMinutes: timeInputToMinutes(e.target.value),
+                      endMinutes: timeInputToMinutes(customPaintEnd),
+                      color: COLOR_PRESETS[0].bg,
+                      textColor: COLOR_PRESETS[0].fg,
+                      title: "",
+                    });
+                  }}
+                  className="mt-1 block rounded-xl border border-violet-200 bg-white px-3 py-1.5 text-sm"
+                />
+              </label>
+              <label className="text-xs font-semibold text-violet-800">
+                {t(locale, "scheduleEnd")}
+                <input
+                  type="time"
+                  value={customPaintEnd}
+                  onChange={(e) => {
+                    setCustomPaintEnd(e.target.value);
+                    setPaintBrush({
+                      kind: "custom",
+                      startMinutes: timeInputToMinutes(customPaintStart),
+                      endMinutes: timeInputToMinutes(e.target.value),
+                      color: COLOR_PRESETS[0].bg,
+                      textColor: COLOR_PRESETS[0].fg,
+                      title: "",
+                    });
+                  }}
+                  className="mt-1 block rounded-xl border border-violet-200 bg-white px-3 py-1.5 text-sm"
+                />
+              </label>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       {error ? (
         <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -499,7 +834,11 @@ export function ScheduleClient({
         </p>
       ) : null}
 
-      <div className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-200/80 sm:p-6">
+      <div
+        className={`rounded-3xl bg-white p-4 shadow-sm ring-1 sm:p-6 ${
+          paintMode ? "ring-violet-300" : "ring-slate-200/80"
+        }`}
+      >
         <div className="mb-4 flex items-center justify-between gap-2">
           <button
             type="button"
@@ -531,27 +870,30 @@ export function ScheduleClient({
         <div className="grid grid-cols-7 gap-1">
           {cells.map((cell) => {
             const selected = cell.key === selectedKey;
+            const targetOccupied =
+              paintMode &&
+              shiftsOnDayForUser(shiftsByDay, cell.key, paintTargetUserId)
+                .length > 0;
             return (
               <button
                 key={cell.key}
                 type="button"
-                onClick={() => {
-                  setSelectedKey(cell.key);
-                  if (!cell.inMonth) setCursor(startOfMonth(cell.date));
-                }}
+                onClick={() => onCellClick(cell)}
                 className={`flex min-h-[3.25rem] flex-col items-center rounded-xl px-1 py-1.5 text-sm transition ${
-                  selected
+                  selected && !paintMode
                     ? "bg-blue-600 text-white"
-                    : cell.inMonth
-                      ? "text-slate-900 hover:bg-slate-50"
-                      : "text-slate-300 hover:bg-slate-50"
+                    : paintMode && !targetOccupied && cell.inMonth
+                      ? "bg-violet-50 text-violet-900 ring-1 ring-violet-200 hover:bg-violet-100"
+                      : cell.inMonth
+                        ? "text-slate-900 hover:bg-slate-50"
+                        : "text-slate-300 hover:bg-slate-50"
                 } ${cell.isToday && !selected ? "ring-1 ring-blue-300" : ""}`}
               >
                 <span className="font-medium">{cell.day}</span>
                 {cell.count > 0 ? (
                   <span
                     className={`mt-1 rounded-full px-1.5 text-[10px] font-bold leading-4 ${
-                      selected
+                      selected && !paintMode
                         ? "bg-white/20 text-white"
                         : "bg-blue-50 text-blue-700"
                     }`}
@@ -565,149 +907,183 @@ export function ScheduleClient({
         </div>
       </div>
 
-      <section className="space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold text-slate-700">{dayHeading}</h2>
-          <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={() => {
-                setShowApply(true);
-                setError(null);
-              }}
-              className="text-sm font-semibold text-slate-700 hover:underline"
-            >
-              {t(locale, "scheduleApplyTemplate")}
-            </button>
-            <button
-              type="button"
-              onClick={openCreate}
-              className="text-sm font-semibold text-blue-600 hover:underline"
-            >
-              {t(locale, "scheduleAdd")}
-            </button>
-          </div>
-        </div>
-
-        <div className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-200/80 sm:p-5">
-          <h3 className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">
-            {t(locale, "scheduleOnDuty")}
-          </h3>
-          {onDutyGroups.length === 0 ? (
-            <div className="rounded-2xl bg-slate-50 px-4 py-6 text-center">
-              <p className="text-sm text-slate-500">
-                {t(locale, "scheduleEmptyDay")}
-              </p>
-              <div className="mt-3 flex flex-wrap justify-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowApply(true);
-                    setError(null);
-                  }}
-                  className="inline-flex h-9 items-center rounded-xl bg-white px-3 text-sm font-semibold text-slate-800 ring-1 ring-slate-200"
-                >
-                  {t(locale, "scheduleApplyTemplate")}
-                </button>
-                <button
-                  type="button"
-                  onClick={openCreate}
-                  className="inline-flex h-9 items-center rounded-xl bg-blue-600 px-3 text-sm font-semibold text-white"
-                >
-                  {t(locale, "scheduleEmptyCta")}
-                </button>
-              </div>
+      {!paintMode ? (
+        <section className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold text-slate-700">{dayHeading}</h2>
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setApplyTargetUserId(currentUserId);
+                  setShowApply(true);
+                  setError(null);
+                }}
+                className="text-sm font-semibold text-slate-700 hover:underline"
+              >
+                {t(locale, "scheduleApplyTemplate")}
+              </button>
+              <button
+                type="button"
+                onClick={() => openCreate()}
+                className="text-sm font-semibold text-blue-600 hover:underline"
+              >
+                {t(locale, "scheduleAdd")}
+              </button>
             </div>
-          ) : (
-            <ul className="space-y-3">
-              {onDutyGroups.map((g) => (
-                <li key={g.userId} className="space-y-2">
-                  <p className="text-sm font-semibold text-slate-800">
-                    {memberLabel(
-                      g.userId,
-                      members,
-                      profiles,
-                      t(locale, "scheduleMemberFallback")
-                    )}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {g.shifts.map((s) => {
-                      const canEdit = s.user_id === currentUserId;
-                      return (
-                        <div
-                          key={s.id}
-                          className="inline-flex max-w-full flex-col gap-1 rounded-xl px-3 py-2 text-left shadow-sm"
-                          style={{
-                            backgroundColor: s.color || "#3B82F6",
-                            color: s.text_color || "#FFFFFF",
-                          }}
-                        >
-                          <span className="text-sm font-semibold">
-                            {formatTime(s.start_at, locale)} –{" "}
-                            {formatTime(s.end_at, locale)}
-                            {s.title ? ` · ${s.title}` : ""}
-                          </span>
-                          {s.note ? (
-                            <span className="text-xs opacity-90">{s.note}</span>
-                          ) : null}
-                          {canEdit ? (
-                            <span className="mt-1 flex gap-2 text-xs font-semibold">
-                              <button
-                                type="button"
-                                className="underline opacity-95"
-                                onClick={() => openEdit(s)}
-                              >
-                                {t(locale, "scheduleEdit")}
-                              </button>
-                              <button
-                                type="button"
-                                className="underline opacity-95"
-                                onClick={() => setConfirmDeleteId(s.id)}
-                              >
-                                {t(locale, "scheduleDelete")}
-                              </button>
-                            </span>
-                          ) : null}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+          </div>
 
-        <div className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-200/80 sm:p-5">
-          <h3 className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-500">
-            {t(locale, "scheduleOffDuty")}
-          </h3>
-          <p className="mb-3 text-xs text-slate-400">
-            {t(locale, "scheduleOffDutyHint")}
-          </p>
-          {offDutyMembers.length === 0 ? (
-            <p className="text-sm text-slate-500">
-              {t(locale, "scheduleOffDutyEmpty")}
+          <div className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-200/80 sm:p-5">
+            <h3 className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">
+              {t(locale, "scheduleOnDuty")}
+            </h3>
+            {onDutyGroups.length === 0 ? (
+              <div className="rounded-2xl bg-slate-50 px-4 py-6 text-center">
+                <p className="text-sm text-slate-500">
+                  {t(locale, "scheduleEmptyDay")}
+                </p>
+                <div className="mt-3 flex flex-wrap justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setApplyTargetUserId(currentUserId);
+                      setShowApply(true);
+                      setError(null);
+                    }}
+                    className="inline-flex h-9 items-center rounded-xl bg-white px-3 text-sm font-semibold text-slate-800 ring-1 ring-slate-200"
+                  >
+                    {t(locale, "scheduleApplyTemplate")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openCreate()}
+                    className="inline-flex h-9 items-center rounded-xl bg-blue-600 px-3 text-sm font-semibold text-white"
+                  >
+                    {t(locale, "scheduleEmptyCta")}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <ul className="space-y-3">
+                {onDutyGroups.map((g) => (
+                  <li key={g.userId} className="space-y-2">
+                    <p className="text-sm font-semibold text-slate-800">
+                      {memberLabel(
+                        g.userId,
+                        members,
+                        profiles,
+                        t(locale, "scheduleMemberFallback")
+                      )}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {g.shifts.map((s) => {
+                        const canEdit = canEditShift(
+                          s,
+                          currentUserId,
+                          members
+                        );
+                        return (
+                          <div
+                            key={s.id}
+                            className="inline-flex max-w-full flex-col gap-1 rounded-xl px-3 py-2 text-left shadow-sm"
+                            style={{
+                              backgroundColor: s.color || "#3B82F6",
+                              color: s.text_color || "#FFFFFF",
+                            }}
+                          >
+                            <span className="text-sm font-semibold">
+                              {formatTime(s.start_at, locale)} –{" "}
+                              {formatTime(s.end_at, locale)}
+                              {s.title ? ` · ${s.title}` : ""}
+                            </span>
+                            {s.note ? (
+                              <span className="text-xs opacity-90">
+                                {s.note}
+                              </span>
+                            ) : null}
+                            {canEdit ? (
+                              <span className="mt-1 flex gap-2 text-xs font-semibold">
+                                <button
+                                  type="button"
+                                  className="underline opacity-95"
+                                  onClick={() => openEdit(s)}
+                                >
+                                  {t(locale, "scheduleEdit")}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="underline opacity-95"
+                                  onClick={() => setConfirmDeleteId(s.id)}
+                                >
+                                  {t(locale, "scheduleDelete")}
+                                </button>
+                              </span>
+                            ) : null}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {isAdmin && g.userId !== currentUserId ? (
+                      <button
+                        type="button"
+                        onClick={() => openCreate(g.userId)}
+                        className="text-xs font-semibold text-blue-600 hover:underline"
+                      >
+                        {t(locale, "scheduleAdd")}
+                      </button>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-200/80 sm:p-5">
+            <h3 className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-500">
+              {t(locale, "scheduleOffDuty")}
+            </h3>
+            <p className="mb-3 text-xs text-slate-400">
+              {t(locale, "scheduleOffDutyHint")}
             </p>
-          ) : (
-            <ul className="flex flex-wrap gap-2">
-              {offDutyMembers.map((m) => (
-                <li
-                  key={m.user_id}
-                  className="rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-600"
-                >
-                  {memberLabel(
-                    m.user_id,
-                    members,
-                    profiles,
-                    t(locale, "scheduleMemberFallback")
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </section>
+            {offDutyMembers.length === 0 ? (
+              <p className="text-sm text-slate-500">
+                {t(locale, "scheduleOffDutyEmpty")}
+              </p>
+            ) : (
+              <ul className="flex flex-wrap gap-2">
+                {offDutyMembers.map((m) => (
+                  <li key={m.user_id}>
+                    {isAdmin ? (
+                      <button
+                        type="button"
+                        onClick={() => openCreate(m.user_id)}
+                        className="rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-600 hover:bg-blue-50 hover:text-blue-700"
+                        title={t(locale, "scheduleAdd")}
+                      >
+                        {memberLabel(
+                          m.user_id,
+                          members,
+                          profiles,
+                          t(locale, "scheduleMemberFallback")
+                        )}
+                      </button>
+                    ) : (
+                      <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-600">
+                        {memberLabel(
+                          m.user_id,
+                          members,
+                          profiles,
+                          t(locale, "scheduleMemberFallback")
+                        )}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </section>
+      ) : null}
 
       {form ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
@@ -716,6 +1092,45 @@ export function ScheduleClient({
               {form.id ? t(locale, "scheduleEdit") : t(locale, "scheduleAdd")}
             </h3>
             <div className="mt-4 space-y-3">
+              {isAdmin && !form.id ? (
+                <label className="block text-xs font-semibold text-slate-500">
+                  {t(locale, "scheduleMember")}
+                  <select
+                    value={form.userId}
+                    onChange={(e) =>
+                      setForm({ ...form, userId: e.target.value })
+                    }
+                    className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                  >
+                    {assignableMembers.map((m) => (
+                      <option key={m.user_id} value={m.user_id}>
+                        {m.user_id === currentUserId
+                          ? t(locale, "scheduleForMe")
+                          : memberLabel(
+                              m.user_id,
+                              members,
+                              profiles,
+                              t(locale, "scheduleMemberFallback")
+                            )}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : (
+                <p className="text-xs text-slate-500">
+                  {t(locale, "scheduleMember")}:{" "}
+                  <span className="font-semibold text-slate-800">
+                    {form.userId === currentUserId
+                      ? t(locale, "scheduleForMe")
+                      : memberLabel(
+                          form.userId,
+                          members,
+                          profiles,
+                          t(locale, "scheduleMemberFallback")
+                        )}
+                  </span>
+                </p>
+              )}
               <label className="block text-xs font-semibold text-slate-500">
                 {t(locale, "scheduleStart")}
                 <input
@@ -964,6 +1379,29 @@ export function ScheduleClient({
             </div>
             <div className="flex-1 overflow-y-auto px-5 py-4">
               <p className="mb-3 text-xs text-slate-500">{dayHeading}</p>
+              {isAdmin ? (
+                <label className="mb-3 block text-xs font-semibold text-slate-500">
+                  {t(locale, "scheduleMember")}
+                  <select
+                    value={applyTargetUserId}
+                    onChange={(e) => setApplyTargetUserId(e.target.value)}
+                    className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                  >
+                    {assignableMembers.map((m) => (
+                      <option key={m.user_id} value={m.user_id}>
+                        {m.user_id === currentUserId
+                          ? t(locale, "scheduleForMe")
+                          : memberLabel(
+                              m.user_id,
+                              members,
+                              profiles,
+                              t(locale, "scheduleMemberFallback")
+                            )}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
               {applyList.length === 0 ? (
                 <div className="text-center">
                   <p className="text-sm text-slate-500">
@@ -988,7 +1426,13 @@ export function ScheduleClient({
                       <button
                         type="button"
                         disabled={pending}
-                        onClick={() => applyTemplate(tmpl.id)}
+                        onClick={() => {
+                          applyTemplate(
+                            tmpl.id,
+                            selectedKey,
+                            isAdmin ? applyTargetUserId : currentUserId
+                          );
+                        }}
                         className="flex w-full items-center gap-3 rounded-2xl bg-slate-50 px-3 py-3 text-left hover:bg-slate-100 disabled:opacity-60"
                       >
                         <span
