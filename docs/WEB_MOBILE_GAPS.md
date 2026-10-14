@@ -3,7 +3,7 @@
 產品名：**Work Assistants**／任務助理。Repo 仍為 `MissionBoard-web`。  
 後端：與 MissionBoard-iOS 同一 Supabase；canonical migrations 在 iOS repo，`web/supabase/migrations` 僅鏡像。
 
-更新日期：2026-10-14（離線 banner／offline banner）
+更新日期：2026-10-14（新手引導／onboarding P3）
 
 ## 已上線（Web）
 
@@ -28,6 +28,7 @@
 - 步驟 **截止日＋到期提醒 UI（037）**：任務詳情巢狀步驟可設／清 `deadline_date`；設定頁可關「步驟今日到期」早上推播。鏡像 `035`（推播 locale）／`037`；推播仍 mobile
 - **Deep links（Web）**：登入後可回到原本網址（middleware 帶 `next`＝path＋query；email／Google OAuth 皆尊重 `next`；`/auth/callback?next=`）。任務詳情 `/app/missions/[id]`；空間邀請 `/join?code=MB-xxxx-xxxx` → `/app/spaces?invite=`（登入後**自動送出加入申請**一次，已是成員／已有 pending 視為軟成功，並清掉 query）；家人排班碼 `/join/family?code=MB-FAM-xxxx` 或短網址 `/s/MB-FAM-xxxx` → `/app/spaces?family=`（登入後**自動兌換**為 viewer、切換 active space、導向排班；已是成員亦軟成功並清 query）；排班月份 `/app/schedule?ym=YYYY-MM`（切月同步 URL）。家人分享面板可「複製連結」。**不做** Universal Links → native app、Web Push
 - **離線提示（P4）**：root layout 掛 `OfflineBanner`；瀏覽器 `offline`／`online` 時顯示／清除琥珀頂欄（可關閉）；五語 i18n。不做 service worker／完整離線模式／Web Push
+- **新手引導（P3）**：App shell 掛 `OnboardingTour`；首次登入後 4 步可跳過（空間／任務／排班／我的）；`localStorage` 持久化略過；深連結 `?invite=`／`?family=` 當下不顯示以免擋兌換
 - **多語**：Web 語系選單與 cookie 持久化支援 `zh-Hant`／`zh-Hans`／`en`／`ja`／`ko`（與 mobile `AppLanguage` 對齊）；切換時同步 `user_notification_preferences.locale`（`en`／`zh`／`zh-hans`／`ja`／`ko`）。`src/lib/i18n.ts` 全 key 五語齊；登入頁／App shell／任務／排班／空間／動態／設定／分享匯出／投票公告皆走 `t()`。行銷首頁 `/` 仍以繁中為主（未納 i18n）。產品名維持 Work Assistants／任務助理
 
 ## 排班相對 mobile 缺口（優先下一波）
@@ -49,6 +50,7 @@
 - ~~多語：Web 僅 zh-Hant／en；mobile 另有 ja／ko／zh-Hans~~ ✅（Web 已齊五語；少數新增字串若暫時落後以 en 補）
 - ~~Deep links／分享後開啟正確畫面~~ ✅（見上；Universal Links／app → native 仍不做）
 - ~~離線提示 banner（P4）~~ ✅（online／offline；非完整離線／SW）
+- ~~新手引導（P3）~~ ✅（可跳過；非每頁 coach marks）
 
 ## 建議實作順序
 
@@ -57,7 +59,7 @@
 3. ~~Admin 代建班／編輯他人／油漆模式~~ ✅  
 4. ~~請假／換班~~ ✅  
 5. ~~整月批次產生／undo batch~~ ✅ → ~~自訂節奏精靈~~ ✅  
-6. ~~排班分享／匯出（`015`）~~ ✅（client export＋家人分享碼 UI）；~~真實 Pro 讀取~~ ✅；~~任務優先度／決策人（`029`）~~ ✅；~~週期任務（`031`／`036`）＋巢狀步驟（`033`）~~ ✅；~~投票／公告（`032`／`034`）~~ ✅；~~開始提醒 UI（`030`）~~ ✅；~~「我的」頁＋步驟截止 UI（`037`／`035`）~~ ✅；~~多語 ja／ko／zh-Hans~~ ✅；~~Web deep links~~ ✅（含 invite／family **auto-redeem**）；~~離線 banner（P4）~~ ✅  
+6. ~~排班分享／匯出（`015`）~~ ✅（client export＋家人分享碼 UI）；~~真實 Pro 讀取~~ ✅；~~任務優先度／決策人（`029`）~~ ✅；~~週期任務（`031`／`036`）＋巢狀步驟（`033`）~~ ✅；~~投票／公告（`032`／`034`）~~ ✅；~~開始提醒 UI（`030`）~~ ✅；~~「我的」頁＋步驟截止 UI（`037`／`035`）~~ ✅；~~多語 ja／ko／zh-Hans~~ ✅；~~Web deep links~~ ✅（含 invite／family **auto-redeem**）；~~離線 banner（P4）~~ ✅；~~新手引導（P3）~~ ✅  
 
 Auth redirect（Cloudflare／自訂網域）：`https://app.onyxlab.dev/auth/callback`（與 Vercel 網域並存於 Supabase Redirect URLs）。
 
