@@ -14,6 +14,7 @@ import {
 import type {
   MissionCommentRow,
   MissionReaderRow,
+  MissionRecurrenceRow,
   MissionRow,
   MissionStepRow,
   MissionWorkerRow,
@@ -40,7 +41,7 @@ export default async function MissionDetailPage({
   const { data: mission, error } = await supabase
     .from("missions")
     .select(
-      "id,space_id,title,description,start_date,due_date,status,flag_icon,creator_id,created_at,updated_at,archived_at,priority,decision_maker_id,decision_requested_at,decision_requested_by,decision_approved_at,decision_approved_by"
+      "id,space_id,title,description,start_date,due_date,status,flag_icon,creator_id,created_at,updated_at,archived_at,priority,decision_maker_id,decision_requested_at,decision_requested_by,decision_approved_at,decision_approved_by,recurrence_id"
     )
     .eq("id", id)
     .maybeSingle();
@@ -61,7 +62,7 @@ export default async function MissionDetailPage({
     supabase
       .from("mission_steps")
       .select(
-        "id,mission_id,title,order_index,is_done,assignee_id,deadline_date,created_at,completed_at"
+        "id,mission_id,title,order_index,is_done,assignee_id,deadline_date,created_at,completed_at,parent_step_id"
       )
       .eq("mission_id", id)
       .order("order_index"),
@@ -93,6 +94,28 @@ export default async function MissionDetailPage({
 
   const readers = (readerRows as MissionReaderRow[]) ?? [];
   const workers = (workerRows as MissionWorkerRow[]) ?? [];
+
+  let recurrence: MissionRecurrenceRow | null = null;
+  const recurrenceId = (mission as MissionRow).recurrence_id;
+  if (recurrenceId) {
+    const { data: rec } = await supabase
+      .from("mission_recurrences")
+      .select(
+        "id,space_id,template_mission_id,created_by,frequency,interval_days,weekdays,month_day,time_minutes,timezone,start_on,end_on,max_count,generated_count,next_run_at,last_run_at,active,created_at,updated_at"
+      )
+      .eq("id", recurrenceId)
+      .maybeSingle();
+    recurrence = (rec as MissionRecurrenceRow) ?? null;
+  } else {
+    const { data: rec } = await supabase
+      .from("mission_recurrences")
+      .select(
+        "id,space_id,template_mission_id,created_by,frequency,interval_days,weekdays,month_day,time_minutes,timezone,start_on,end_on,max_count,generated_count,next_run_at,last_run_at,active,created_at,updated_at"
+      )
+      .eq("template_mission_id", id)
+      .maybeSingle();
+    recurrence = (rec as MissionRecurrenceRow) ?? null;
+  }
 
   const profileIds = new Set<string>();
   for (const m of members ?? []) profileIds.add(m.user_id as string);
@@ -143,6 +166,7 @@ export default async function MissionDetailPage({
         isWorking={isWorking}
         userId={user.id}
         claimRequests={(claimRows as StepClaimRequestRow[]) ?? []}
+        recurrence={recurrence}
       />
     </AppShell>
   );

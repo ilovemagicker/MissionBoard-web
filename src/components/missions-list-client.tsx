@@ -215,6 +215,14 @@ export function MissionsListClient({
                           {t(locale, "decisionPendingBadge")}
                         </span>
                       )}
+                      {m.recurrence_id && (
+                        <span
+                          title={t(locale, "recurrenceIconA11y")}
+                          className="ml-2 rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-700 ring-1 ring-indigo-200"
+                        >
+                          ↻
+                        </span>
+                      )}
                     </p>
                     <p className="mt-0.5 text-xs text-slate-500">
                       {m.due_date ? `Due ${m.due_date}` : "—"}
