@@ -93,7 +93,7 @@ export default function LoginPage() {
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-12">
       <div className="rounded-3xl bg-white p-8 shadow-sm ring-1 ring-slate-200/80">
         <Link href="/" className="text-sm font-medium text-blue-600">
-          ← Mission Board
+          ← Work Assistants
         </Link>
         <h1 className="mt-4 text-2xl font-bold text-slate-900">
           {mode === "signin" ? "使用 Email 登入" : "建立帳號"}

@@ -1,6 +1,6 @@
-# Mission Board (Web)
+# Work Assistants (Web)
 
-Next.js (App Router) web client for **Mission Board**. Shares the same **Supabase** project as the iOS app ([MissionBoard-iOS](https://github.com/ilovemagicker/MissionBoard-iOS)).
+Next.js (App Router) web client for **Work Assistants**（任務助理；repo 仍名 MissionBoard-web）。Shares the same **Supabase** project as iOS／Android ([MissionBoard-iOS](https://github.com/ilovemagicker/MissionBoard-iOS)).
 
 ## Stack
 
@@ -55,7 +55,8 @@ Open [http://localhost:3000](http://localhost:3000).
 | `/app/missions` | Mission list (`?archived=1` to include archived) |
 | `/app/missions/new` | Create mission |
 | `/app/missions/[id]` | Detail: status, working, readers/workers panel, steps, comments, archive/delete |
-| `/app/calendar` | Month calendar for active space |
+| `/app/schedule` | Shift schedule (month grid, CRUD, on-duty / off-duty) |
+| `/app/calendar` | Month calendar of **missions** for active space |
 | `/app/activity` | Activity feed for active space (Realtime) |
 | `/app/spaces` | List / create / join / members / pending + owner archive/delete/transfer |
 | `/app/spaces/join` | Redirects to `/app/spaces` |
@@ -72,7 +73,8 @@ Scope and waves (zh): [`docs/FUNCTIONAL_DESIGN.md`](docs/FUNCTIONAL_DESIGN.md).
 
 **Wave 1 MVP: done** — app shell, missions list/create/detail, spaces create/join/approve, locale, logout.  
 **Wave 2: done** — calendar, readers/workers who+when, mission + space archive/delete, Google OAuth.  
-**Wave 3 (partial): done** — ownership transfer UI, `activity_events` + Activity page + Realtime (missions list light refresh). Push / billing still later.
+**Wave 3 (partial): done** — ownership transfer UI, `activity_events` + Activity page + Realtime (missions list light refresh). Push / billing still later.  
+**Schedule W1: done** — `/app/schedule` month grid, own-shift CRUD, on-duty / off-duty day detail (migrations `008`+). See [`docs/WEB_MOBILE_GAPS.md`](docs/WEB_MOBILE_GAPS.md) for remaining mobile parity.
 
 ## Schema assumptions (shared with iOS)
 
@@ -89,6 +91,7 @@ Migrations: `MissionBoard-iOS/supabase/migrations/`
 - Ownership transfer: RPC `transfer_space_ownership` + Spaces UI (owner picks another member → confirm).
 - Activity: table `activity_events` (`006_activity_events.sql`) with triggers on missions / steps / comments / members; Web `/app/activity` + Realtime subscribe. Seen state via `localStorage` (`mb_activity_seen_<spaceId>`).
 - Step claims (`007`): members request claim → mission creator accepts/declines; assign dropdown for creator/space admin only; self-unclaim via RPC.
+- Shifts (`008`): table `shifts` + RLS; web W1 creates/edits/deletes **own** scheduled shifts. Templates / swaps / leave are later waves (mirrors `009`+ live under `supabase/migrations/` but unused by UI yet).
 
 ### Required: run migration `006` in Supabase
 

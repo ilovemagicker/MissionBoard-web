@@ -5,7 +5,7 @@ export const DEFAULT_LOCALE: Locale = "zh-Hant";
 
 const dict = {
   "zh-Hant": {
-    appName: "Mission Board",
+    appName: "Work Assistants",
     missions: "任務",
     spaces: "空間",
     logout: "登出",
@@ -136,7 +136,7 @@ const dict = {
     monMemberLimitJoinerTitle: "無法加入此空間",
     monMemberLimitJoinerReason: "此空間已達 Free 成員上限（5 人）。請空間 Owner 升級 Pro 後再邀請你。",
     monLimitWallNavTitle: "已達上限",
-    monPaywallTitle: "Mission Board Pro",
+    monPaywallTitle: "Work Assistants Pro",
     monCompareTitle: "Free 與 Pro",
     monPriceTitle: "價格",
     monCheckoutCTA: "即將開放",
@@ -173,7 +173,7 @@ const dict = {
     monDebugPlanHint: "僅供測試：寫入 localStorage，不變更真實帳單。",
   },
   en: {
-    appName: "Mission Board",
+    appName: "Work Assistants",
     missions: "Missions",
     spaces: "Spaces",
     logout: "Log out",
@@ -304,7 +304,7 @@ const dict = {
     monMemberLimitJoinerTitle: "Can’t join this space",
     monMemberLimitJoinerReason: "This Free space is at its 5-member limit. Ask the Owner to upgrade to Pro, then invite you again.",
     monLimitWallNavTitle: "Limit reached",
-    monPaywallTitle: "Mission Board Pro",
+    monPaywallTitle: "Work Assistants Pro",
     monCompareTitle: "Free vs Pro",
     monPriceTitle: "Price",
     monCheckoutCTA: "Coming soon",

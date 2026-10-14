@@ -67,8 +67,8 @@ export function AppShell({
           <div className="flex flex-wrap items-center justify-between gap-3">
             <nav className="flex flex-wrap gap-1 rounded-2xl bg-white p-1 shadow-sm ring-1 ring-slate-200/80">
               {link("/app/missions", "missions", nav === "missions")}
-              {link("/app/calendar", "calendar", nav === "calendar")}
               {link("/app/schedule", "schedule", nav === "schedule")}
+              {link("/app/calendar", "calendar", nav === "calendar")}
               {link("/app/activity", "activity", nav === "activity")}
               {link("/app/spaces", "spaces", nav === "spaces")}
             </nav>
