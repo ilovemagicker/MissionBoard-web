@@ -41,6 +41,7 @@ Open [http://localhost:3000](http://localhost:3000).
 2. Add redirect URLs (exact):
    - `http://localhost:3000/auth/callback`
    - `https://YOUR_VERCEL_DOMAIN/auth/callback`
+   - `https://app.onyxlab.dev/auth/callback` (Cloudflare custom domain)
    - Preview domains as needed: `https://*.vercel.app/auth/callback` (or each preview URL)
 3. In Google Cloud Console OAuth client, allow the same redirect URIs that Supabase shows for the Google provider (Supabase callback host, not only the app `/auth/callback`).
 4. Web login uses `signInWithOAuth({ provider: 'google', options: { redirectTo: origin + '/auth/callback' } })`; `/auth/callback` exchanges the code for a session (`@supabase/ssr`).
@@ -55,7 +56,7 @@ Open [http://localhost:3000](http://localhost:3000).
 | `/app/missions` | Mission list (`?archived=1` to include archived) |
 | `/app/missions/new` | Create mission |
 | `/app/missions/[id]` | Detail: status, working, readers/workers panel, steps, comments, archive/delete |
-| `/app/schedule` | Shift schedule (month grid, CRUD, on-duty / off-duty) |
+| `/app/schedule` | Shift schedule (month grid, CRUD, templates, apply to day, on-duty / off-duty) |
 | `/app/calendar` | Month calendar of **missions** for active space |
 | `/app/activity` | Activity feed for active space (Realtime) |
 | `/app/spaces` | List / create / join / members / pending + owner archive/delete/transfer |

@@ -120,3 +120,18 @@ export type ShiftRow = {
   created_at: string;
   updated_at: string;
 };
+
+export type ShiftTemplateRow = {
+  id: string;
+  space_id: string;
+  created_by: string;
+  name: string;
+  default_start_minutes: number;
+  default_end_minutes: number;
+  color: string;
+  text_color: string;
+  created_at: string;
+  updated_at: string;
+  /** 028: personal owner; null = shared. May be missing if 028 not applied. */
+  owner_user_id?: string | null;
+};
