@@ -91,16 +91,37 @@ export async function lookupScheduleShareCodeAction(code: string) {
 /** Authenticated: redeem family share code → join as role=viewer. */
 export async function joinAsScheduleViewerAction(code: string) {
   try {
-    const { supabase } = await requireAuthedClient();
+    const { supabase, user } = await requireAuthedClient();
     const trimmed = code.trim();
     if (!trimmed) throw new Error("Share code required");
 
-    const { data, error } = await supabase.rpc("join_as_schedule_viewer", {
-      p_code: trimmed,
-    });
-    if (error) throw error;
-    const spaceId = String(data);
-    if (!spaceId) throw new Error("Schedule share code not found");
+    const { data: lookedUp, error: lookupError } = await supabase.rpc(
+      "lookup_schedule_share_code",
+      { p_code: trimmed }
+    );
+    if (lookupError) throw lookupError;
+    const row = Array.isArray(lookedUp) ? lookedUp[0] : lookedUp;
+    if (!row?.space_id) throw new Error("Schedule share code not found");
+    const spaceIdFromLookup = row.space_id as string;
+    const spaceName = (row.space_name as string) ?? "";
+
+    const { data: membership } = await supabase
+      .from("space_members")
+      .select("role")
+      .eq("space_id", spaceIdFromLookup)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    const alreadyMember = !!membership;
+
+    let spaceId = spaceIdFromLookup;
+    if (!alreadyMember) {
+      const { data, error } = await supabase.rpc("join_as_schedule_viewer", {
+        p_code: trimmed,
+      });
+      if (error) throw error;
+      spaceId = String(data);
+      if (!spaceId) throw new Error("Schedule share code not found");
+    }
 
     const cookieStore = await cookies();
     cookieStore.set(ACTIVE_SPACE_COOKIE, spaceId, {
@@ -112,14 +133,20 @@ export async function joinAsScheduleViewerAction(code: string) {
     revalidatePath("/app/spaces");
     revalidatePath("/app/schedule");
     revalidatePath("/app", "layout");
-    return { ok: true as const, spaceId };
+    return {
+      ok: true as const,
+      spaceId,
+      spaceName,
+      alreadyMember,
+    };
   } catch (err) {
     if (isSchemaMissingError(err)) {
       return {
+        ok: false as const,
         error:
           "join_as_schedule_viewer missing — apply supabase/migrations/015_schedule_share.sql",
       };
     }
-    return { error: formatError(err) };
+    return { ok: false as const, error: formatError(err) };
   }
 }

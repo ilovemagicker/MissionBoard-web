@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState, useTransition } from "react";
+import { FormEvent, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   acceptJoinRequestAction,
@@ -51,50 +51,123 @@ export function SpacesClient({
   const router = useRouter();
   const { entitlements, ready } = useEntitlements();
   const [pending, startTransition] = useTransition();
+  const hasDeepLink = !!(
+    (initialInvite && initialInvite.trim()) ||
+    (initialFamilyCode && initialFamilyCode.trim())
+  );
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(
-    initialInvite || initialFamilyCode
-      ? t(locale, "deepLinkCodePrefill")
-      : null
+    hasDeepLink ? t(locale, "deepLinkAutoRedeeming") : null
   );
   const [name, setName] = useState("");
   const [invite, setInvite] = useState(initialInvite ?? "");
   const [familyCode, setFamilyCode] = useState(initialFamilyCode ?? "");
   const [familyPreview, setFamilyPreview] = useState<string | null>(null);
+  const [autoRedeeming, setAutoRedeeming] = useState(hasDeepLink);
   const [transferFor, setTransferFor] = useState<string | null>(null);
   const [transferTarget, setTransferTarget] = useState<string>("");
   const [wallKind, setWallKind] = useState<LimitKind | null>(null);
   const [wallOpen, setWallOpen] = useState(false);
+  const autoRedeemOnce = useRef(false);
 
   function openWall(kind: LimitKind) {
     setWallKind(kind);
     setWallOpen(true);
   }
 
-  // Deep link: preview family share code when landed with ?family=
+  function stripDeepLinkQuery() {
+    router.replace("/app/spaces", { scroll: false });
+  }
+
+  function joinInviteInfo(res: {
+    spaceName?: string;
+    alreadyMember?: boolean;
+    alreadyPending?: boolean;
+  }) {
+    const name = res.spaceName || "";
+    if (res.alreadyMember) {
+      return t(locale, "deepLinkInviteAlreadyMember").replace("{name}", name);
+    }
+    if (res.alreadyPending) {
+      return t(locale, "deepLinkInviteAlreadyPending").replace("{name}", name);
+    }
+    return t(locale, "deepLinkInviteRequested").replace("{name}", name);
+  }
+
+  // Deep link: auto-redeem invite / family code once, then clear query.
   useEffect(() => {
-    const code = (initialFamilyCode ?? "").trim();
-    if (!code) return;
+    if (autoRedeemOnce.current) return;
+    const inviteCode = (initialInvite ?? "").trim();
+    const family = (initialFamilyCode ?? "").trim();
+    if (!inviteCode && !family) return;
+    autoRedeemOnce.current = true;
+
     let cancelled = false;
     (async () => {
-      const res = await lookupScheduleShareCodeAction(code);
-      if (cancelled) return;
-      if (res.error) {
-        setError(res.error);
-        return;
-      }
-      if (res.spaceName) {
-        setFamilyPreview(res.spaceName);
-        setInfo(
-          t(locale, "scheduleRedeemPreview").replace("{name}", res.spaceName)
-        );
+      setError(null);
+      setInfo(t(locale, "deepLinkAutoRedeeming"));
+      setAutoRedeeming(true);
+      try {
+        if (family) {
+          const looked = await lookupScheduleShareCodeAction(family);
+          if (cancelled) return;
+          if (looked.error) {
+            setError(looked.error);
+            setInfo(null);
+            stripDeepLinkQuery();
+            return;
+          }
+          const spaceName = looked.spaceName ?? "";
+          if (spaceName) setFamilyPreview(spaceName);
+          const res = await joinAsScheduleViewerAction(family);
+          if (cancelled) return;
+          if (!res.ok) {
+            setError(res.error);
+            setInfo(null);
+            stripDeepLinkQuery();
+            return;
+          }
+          setFamilyCode("");
+          setFamilyPreview(null);
+          const label = spaceName || res.spaceName || res.spaceId || "";
+          setInfo(
+            res.alreadyMember
+              ? t(locale, "deepLinkFamilyAlreadyMember").replace(
+                  "{name}",
+                  label
+                )
+              : t(locale, "scheduleRedeemSuccess").replace("{name}", label)
+          );
+          // Leave /app/spaces?family= behind by navigating to schedule (no replace race).
+          router.replace("/app/schedule");
+          router.refresh();
+          return;
+        }
+
+        const fd = new FormData();
+        fd.set("invite_code", inviteCode);
+        const res = await joinByInviteAction(fd);
+        if (cancelled) return;
+        if (!res.ok) {
+          setError(res.error);
+          setInfo(null);
+          stripDeepLinkQuery();
+          return;
+        }
+        setInvite("");
+        setInfo(joinInviteInfo(res));
+        stripDeepLinkQuery();
+        router.refresh();
+      } finally {
+        if (!cancelled) setAutoRedeeming(false);
       }
     })();
+
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialFamilyCode]);
+  }, [initialInvite, initialFamilyCode]);
 
   function run(fn: () => Promise<{ error?: string; ok?: boolean; invite_code?: string; spaceName?: string }>) {
     setError(null);
@@ -138,12 +211,19 @@ export function SpacesClient({
 
   function onJoin(e: FormEvent) {
     e.preventDefault();
+    setError(null);
+    setInfo(null);
     const fd = new FormData();
     fd.set("invite_code", invite);
-    run(async () => {
+    startTransition(async () => {
       const res = await joinByInviteAction(fd);
-      if (!res.error) setInvite("");
-      return res;
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      setInvite("");
+      setInfo(joinInviteInfo(res));
+      router.refresh();
     });
   }
 
@@ -172,19 +252,20 @@ export function SpacesClient({
     setInfo(null);
     startTransition(async () => {
       const looked = await lookupScheduleShareCodeAction(familyCode);
-      const spaceName = looked.spaceName ?? familyPreview ?? "";
+      const spaceName =
+        looked.spaceName ?? familyPreview ?? "";
       const res = await joinAsScheduleViewerAction(familyCode);
-      if (res.error) {
+      if (!res.ok) {
         setError(res.error);
         return;
       }
       setFamilyCode("");
       setFamilyPreview(null);
+      const label = spaceName || res.spaceName || res.spaceId || "";
       setInfo(
-        t(locale, "scheduleRedeemSuccess").replace(
-          "{name}",
-          spaceName || res.spaceId || ""
-        )
+        res.alreadyMember
+          ? t(locale, "deepLinkFamilyAlreadyMember").replace("{name}", label)
+          : t(locale, "scheduleRedeemSuccess").replace("{name}", label)
       );
       router.refresh();
       router.push("/app/schedule");
@@ -278,10 +359,12 @@ export function SpacesClient({
           />
           <button
             type="submit"
-            disabled={pending}
+            disabled={pending || autoRedeeming}
             className="mt-3 h-10 w-full rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-800"
           >
-            {t(locale, "submitJoin")}
+            {autoRedeeming && invite.trim()
+              ? t(locale, "deepLinkAutoRedeeming")
+              : t(locale, "submitJoin")}
           </button>
         </form>
 
@@ -316,7 +399,7 @@ export function SpacesClient({
           <div className="mt-3 grid grid-cols-2 gap-2">
             <button
               type="button"
-              disabled={pending || !familyCode.trim()}
+              disabled={pending || autoRedeeming || !familyCode.trim()}
               onClick={onLookupFamily}
               className="h-10 rounded-xl border border-indigo-200 bg-indigo-50 text-sm font-semibold text-indigo-800 disabled:opacity-60"
             >
@@ -324,10 +407,12 @@ export function SpacesClient({
             </button>
             <button
               type="submit"
-              disabled={pending || !familyCode.trim()}
+              disabled={pending || autoRedeeming || !familyCode.trim()}
               className="h-10 rounded-xl bg-indigo-600 text-sm font-semibold text-white disabled:opacity-60"
             >
-              {t(locale, "scheduleRedeemJoin")}
+              {autoRedeeming && familyCode.trim()
+                ? t(locale, "deepLinkAutoRedeeming")
+                : t(locale, "scheduleRedeemJoin")}
             </button>
           </div>
         </form>
