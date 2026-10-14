@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { OfflineBanner } from "@/components/offline-banner";
 import { getLocale } from "@/lib/session";
 import "./globals.css";
 
@@ -15,7 +16,10 @@ export default async function RootLayout({
   const locale = await getLocale();
   return (
     <html lang={locale} suppressHydrationWarning>
-      <body className="min-h-screen antialiased">{children}</body>
+      <body className="min-h-screen antialiased">
+        <OfflineBanner locale={locale} />
+        {children}
+      </body>
     </html>
   );
 }
