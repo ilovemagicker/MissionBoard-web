@@ -4,7 +4,12 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/config";
 import { formatError } from "@/lib/errors";
-import { planGeneration } from "@/lib/shift-generation";
+import {
+  hydratePatternCycle,
+  planGeneration,
+  templateIdsFromCycle,
+  type PatternBlockInput,
+} from "@/lib/shift-generation";
 import type { ShiftTemplateRow } from "@/lib/types";
 
 async function requireAuthedClient() {
@@ -160,9 +165,13 @@ export async function generateShiftsBatchAction(input: {
   /** Inclusive YYYY-MM-DD */
   startKey: string;
   endKey: string;
-  templateIds: string[];
+  /** Template ids for presets / weekdays; also used as fallback. */
+  templateIds?: string[];
   userIds: string[];
-  pattern: "everyday" | "weekdays" | "4on4off" | "5on2off";
+  /** Preset kind. Use "weekdays" for calendar weekend=rest. Omit when customCycle is set. */
+  pattern?: "everyday" | "weekdays" | "4on4off" | "5on2off";
+  /** Custom ordered cycle (work templateId or rest). Rehydrated server-side. */
+  customCycle?: PatternBlockInput[];
   mode: "samePhase" | "staggered";
   conflict: "skip" | "overwrite";
 }) {
@@ -175,8 +184,24 @@ export async function generateShiftsBatchAction(input: {
     ) {
       throw new Error("Invalid date range");
     }
-    if (!input.templateIds?.length) throw new Error("Pick at least one template");
     if (!input.userIds?.length) throw new Error("Pick at least one member");
+
+    const fromCycle = input.customCycle?.length
+      ? templateIdsFromCycle(input.customCycle)
+      : [];
+    const templateIds = [
+      ...fromCycle,
+      ...(input.templateIds ?? []).filter((id) => !fromCycle.includes(id)),
+    ];
+    if (!templateIds.length) throw new Error("Pick at least one template");
+    if (
+      input.pattern !== "weekdays" &&
+      input.customCycle &&
+      input.customCycle.length > 0 &&
+      !fromCycle.length
+    ) {
+      throw new Error("Custom pattern needs at least one work day");
+    }
 
     const assignees: string[] = [];
     for (const uid of input.userIds) {
@@ -195,7 +220,7 @@ export async function generateShiftsBatchAction(input: {
         "id,space_id,created_by,name,default_start_minutes,default_end_minutes,color,text_color,created_at,updated_at,owner_user_id"
       )
       .eq("space_id", input.spaceId)
-      .in("id", input.templateIds);
+      .in("id", templateIds);
     if (tmplErr && /owner_user_id/i.test(tmplErr.message)) {
       const legacy = await supabase
         .from("shift_templates")
@@ -203,18 +228,19 @@ export async function generateShiftsBatchAction(input: {
           "id,space_id,created_by,name,default_start_minutes,default_end_minutes,color,text_color,created_at,updated_at"
         )
         .eq("space_id", input.spaceId)
-        .in("id", input.templateIds);
+        .in("id", templateIds);
       if (legacy.error) throw legacy.error;
       if (!legacy.data?.length) throw new Error("Templates not found");
       return await commitBatchFromTemplates({
         supabase,
         spaceId: input.spaceId,
         templates: legacy.data as ShiftTemplateRow[],
-        templateIds: input.templateIds,
+        templateIds,
         assignees,
         startKey: input.startKey,
         endKey: input.endKey,
         pattern: input.pattern,
+        customCycle: input.customCycle,
         mode: input.mode,
         conflict: input.conflict,
       });
@@ -226,11 +252,12 @@ export async function generateShiftsBatchAction(input: {
       supabase,
       spaceId: input.spaceId,
       templates: templates as ShiftTemplateRow[],
-      templateIds: input.templateIds,
+      templateIds,
       assignees,
       startKey: input.startKey,
       endKey: input.endKey,
       pattern: input.pattern,
+      customCycle: input.customCycle,
       mode: input.mode,
       conflict: input.conflict,
     });
@@ -247,7 +274,8 @@ async function commitBatchFromTemplates(args: {
   assignees: string[];
   startKey: string;
   endKey: string;
-  pattern: "everyday" | "weekdays" | "4on4off" | "5on2off";
+  pattern?: "everyday" | "weekdays" | "4on4off" | "5on2off";
+  customCycle?: PatternBlockInput[];
   mode: "samePhase" | "staggered";
   conflict: "skip" | "overwrite";
 }) {
@@ -255,6 +283,15 @@ async function commitBatchFromTemplates(args: {
     .map((id) => args.templates.find((t) => t.id === id))
     .filter(Boolean) as ShiftTemplateRow[];
   if (!ordered.length) throw new Error("Templates not found");
+
+  const byId = new Map(args.templates.map((t) => [t.id, t]));
+  let customCycle = undefined as
+    | ReturnType<typeof hydratePatternCycle>
+    | undefined;
+  if (args.pattern !== "weekdays" && args.customCycle?.length) {
+    customCycle = hydratePatternCycle(args.customCycle, byId);
+    if (!customCycle) throw new Error("Templates not found");
+  }
 
   // Load existing scheduled shifts overlapping the range for conflict checks.
   const rangeStart = new Date(`${args.startKey}T00:00:00`);
@@ -289,6 +326,7 @@ async function commitBatchFromTemplates(args: {
     startKey: args.startKey,
     endKey: args.endKey,
     pattern: args.pattern,
+    customCycle: customCycle ?? undefined,
     mode: args.mode,
     conflict: args.conflict,
     occupiedDayKeys: occupied,
@@ -419,6 +457,85 @@ export async function undoGenerationBatchAction(input: {
     }
 
     const deleted = data?.length ?? 0;
+    revalidateSchedule();
+    return { ok: true as const, deleted };
+  } catch (err) {
+    return { error: formatError(err) };
+  }
+}
+
+/** Delete shifts with source=generated in range for members the actor can assign. */
+export async function clearGeneratedShiftsInRangeAction(input: {
+  spaceId: string;
+  startKey: string;
+  endKey: string;
+  userIds: string[];
+}) {
+  try {
+    const { supabase, user } = await requireAuthedClient();
+    if (!input.spaceId) throw new Error("Space is required");
+    if (
+      !/^\d{4}-\d{2}-\d{2}$/.test(input.startKey) ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(input.endKey)
+    ) {
+      throw new Error("Invalid date range");
+    }
+    if (!input.userIds?.length) throw new Error("Pick at least one member");
+
+    const assignees: string[] = [];
+    for (const uid of input.userIds) {
+      const resolved = await resolveShiftUserId(
+        supabase,
+        input.spaceId,
+        user.id,
+        uid
+      );
+      if (!assignees.includes(resolved)) assignees.push(resolved);
+    }
+
+    const rangeStart = new Date(`${input.startKey}T00:00:00`);
+    const rangeEndExclusive = new Date(`${input.endKey}T00:00:00`);
+    rangeEndExclusive.setDate(rangeEndExclusive.getDate() + 2);
+
+    const { data: rows, error: selErr } = await supabase
+      .from("shifts")
+      .select("id,user_id,start_at,source,status")
+      .eq("space_id", input.spaceId)
+      .eq("source", "generated")
+      .eq("status", "scheduled")
+      .in("user_id", assignees)
+      .gte(
+        "start_at",
+        new Date(rangeStart.getTime() - 24 * 3600 * 1000).toISOString()
+      )
+      .lt("start_at", rangeEndExclusive.toISOString())
+      .limit(5000);
+    if (selErr) throw selErr;
+
+    const startKey = input.startKey;
+    const endKey = input.endKey;
+    const toDelete = (rows ?? []).filter((row) => {
+      const day = localDayKeyFromIso(row.start_at as string);
+      return day >= startKey && day <= endKey;
+    });
+    if (!toDelete.length) {
+      return { ok: true as const, deleted: 0 };
+    }
+
+    const ids = toDelete.map((r) => r.id as string);
+    const chunkSize = 100;
+    let deleted = 0;
+    for (let i = 0; i < ids.length; i += chunkSize) {
+      const chunk = ids.slice(i, i + chunkSize);
+      const { data, error } = await supabase
+        .from("shifts")
+        .delete()
+        .in("id", chunk)
+        .select("id");
+      if (error) throw error;
+      deleted += data?.length ?? 0;
+    }
+
     revalidateSchedule();
     return { ok: true as const, deleted };
   } catch (err) {

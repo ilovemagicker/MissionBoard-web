@@ -3,7 +3,7 @@
 產品名：**Work Assistants**／任務助理。Repo 仍為 `MissionBoard-web`。  
 後端：與 MissionBoard-iOS 同一 Supabase；canonical migrations 在 iOS repo，`web/supabase/migrations` 僅鏡像。
 
-更新日期：2026-10-14（Web deep links）
+更新日期：2026-10-14（班表節奏精靈／Rotation wizard）
 
 ## 已上線（Web）
 
@@ -16,7 +16,7 @@
 - 排班 **班次範本（最小）**：列表／新增／編輯／刪除；套用到所選日；migrations 鏡像 `009`／`010`／`028`
 - 排班 **admin 代建／油漆**：空間 owner／admin 可為其他成員建班／編輯／刪除；油漆模式（選範本或自訂時段 → 點日曆空日畫班；可選對象；完成離開；復原上一筆）；鏡像 `011`（`shifts_insert_admin` + `generation_batch_id`）
 - 排班 **請假／換班**：登記休假（日／區間／0.25 天比例；本人或 admin 編輯刪除）；換班／代班申請（RPC）、同意／核准／拒絕／取消；空間核准模式（admin_required／peer_accept）；鏡像 `012`／`013`／`014`／`027`
-- 排班 **整月批次產生**：選月份／範本／對象（admin 可多人）／輪替樣式（每天、平日、做四休四、做五休二）／同相位或錯開／略過或覆寫；寫入 `source=generated` + `generation_batch_id`；可復原上一批（localStorage 記 batch id）；對齊 iOS RotationGenerate 最小可用切片
+- 排班 **班表節奏精靈（Rotation wizard）**：分步（區間→積木→預覽→完成）；任意起迄日（上限 400 天）；自訂上班／休息積木循環（加減／排序）；快捷樣式（每天、平日、做四休四、做五休二；平日仍為日曆週末休息）；對象（admin 可多人）／同相位或錯開／略過或覆寫；寫入 `source=generated` + `generation_batch_id`；可復原上一批；可清除區間內 generated 班；對齊 iOS RotationGenerate 主流程
 - 排班 **匯出／分享**：目前月份 → `.ics` 日曆下載、月班表 PNG（canvas）、列印預覽；可選本人／全成員／指定成員。**家人分享碼（015）**：owner／admin 於排班頁產生／複製／撤銷重產 `MB-FAM-xxxx`；任何人登入後於空間頁兌換 → `role=viewer` 唯讀排班；viewer 隱藏編輯／請假／換班／油漆／批次／範本。RPC：`ensure_schedule_share_code`／`rotate_schedule_share_code`／`lookup_schedule_share_code`／`join_as_schedule_viewer`
 - Free／Pro UI：讀取 `user_entitlements`（`022`／`038` 鏡像）；設定頁顯示來源／到期；DEBUG localStorage 僅覆寫測試；checkout 仍為 App Store／Play stub
 - 任務 **週期／重複**：建立與詳情可設 daily／weekly／monthly／interval、產生時刻、結束條件；停止／恢復／移除；列表與詳情顯示 ↻。鏡像 `030`（欄位依賴）／`031`／`036`（步驟從最新清單複製；產生由 pg_cron）
@@ -33,7 +33,7 @@
 
 - ~~班次範本 CRUD + 套用到所選日~~ ✅
 - ~~油漆模式（快速畫班）／為他人建班／admin 編輯他人班次~~ ✅
-- ~~批次產生／generation batch（`011`）~~ ✅（整月 UI＋undo last batch；完整自訂 pattern wizard 仍簡於 iOS）
+- ~~批次產生／generation batch（`011`）~~ ✅（自訂 pattern wizard＋任意區間＋preview＋undo＋clear generated in range；與 iOS 對齊。剩餘刻意差距：無完整逐日 preview 列表長表、無 EditButton 風格的拖曳排序（Web 用上下鍵））
 - ~~請假（`012`）~~ ✅
 - ~~換班申請／核准（`013`／`014`／`027`）~~ ✅
 - ~~排班分享圖／匯出日曆（`015`）~~ ✅（Web：client ICS＋PNG／列印＋家人分享碼 create／rotate／redeem／viewer 唯讀）
@@ -54,7 +54,7 @@
 2. ~~範本列表＋套用到所選日（最小 slice）~~ ✅  
 3. ~~Admin 代建班／編輯他人／油漆模式~~ ✅  
 4. ~~請假／換班~~ ✅  
-5. ~~整月批次產生／undo batch~~ ✅  
+5. ~~整月批次產生／undo batch~~ ✅ → ~~自訂節奏精靈~~ ✅  
 6. ~~排班分享／匯出（`015`）~~ ✅（client export＋家人分享碼 UI）；~~真實 Pro 讀取~~ ✅；~~任務優先度／決策人（`029`）~~ ✅；~~週期任務（`031`／`036`）＋巢狀步驟（`033`）~~ ✅；~~投票／公告（`032`／`034`）~~ ✅；~~開始提醒 UI（`030`）~~ ✅；~~「我的」頁＋步驟截止 UI（`037`／`035`）~~ ✅；~~多語 ja／ko／zh-Hans~~ ✅；~~Web deep links~~ ✅  
 
 Auth redirect（Cloudflare／自訂網域）：`https://app.onyxlab.dev/auth/callback`（與 Vercel 網域並存於 Supabase Redirect URLs）。
