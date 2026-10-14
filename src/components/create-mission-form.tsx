@@ -2,6 +2,7 @@
 
 import { FormEvent, useMemo, useState, useTransition } from "react";
 import { createMissionAction } from "@/app/actions/missions";
+import { FlagIconPicker, DEFAULT_FLAG_ICON } from "@/components/flag-icon";
 import { t } from "@/lib/i18n";
 import { deviceTimezone } from "@/lib/start-reminder";
 import type { Locale, ProfileRow, RecurrenceFrequency } from "@/lib/types";
@@ -43,6 +44,7 @@ export function CreateMissionForm({
   const [endMode, setEndMode] = useState<"never" | "onDate" | "afterCount">(
     "never"
   );
+  const [flagIcon, setFlagIcon] = useState<string>(DEFAULT_FLAG_ICON);
 
   function toggleWeekday(iso: number) {
     setWeekdays((prev) =>
@@ -94,6 +96,12 @@ export function CreateMissionForm({
           className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-500"
         />
       </label>
+      <FlagIconPicker
+        locale={locale}
+        value={flagIcon}
+        onChange={setFlagIcon}
+        name="flag_icon"
+      />
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block text-sm">
           <span className="mb-1 block font-medium text-slate-700">
