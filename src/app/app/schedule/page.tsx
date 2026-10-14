@@ -9,9 +9,14 @@ import {
   getSession,
   getSpacesForUser,
 } from "@/lib/session";
-import type { ProfileRow, ShiftRow } from "@/lib/types";
+import type { ProfileRow, ShiftRow, ShiftTemplateRow } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
+
+const TEMPLATE_COLS =
+  "id,space_id,created_by,name,default_start_minutes,default_end_minutes,color,text_color,created_at,updated_at,owner_user_id";
+const TEMPLATE_COLS_LEGACY =
+  "id,space_id,created_by,name,default_start_minutes,default_end_minutes,color,text_color,created_at,updated_at";
 
 export default async function SchedulePage() {
   const locale = await getLocale();
@@ -23,6 +28,7 @@ export default async function SchedulePage() {
   const supabase = await createClient();
 
   let shifts: ShiftRow[] = [];
+  let templates: ShiftTemplateRow[] = [];
   let members: { user_id: string; role: string; nickname: string | null }[] =
     [];
   const profiles: Record<string, ProfileRow> = {};
@@ -54,6 +60,32 @@ export default async function SchedulePage() {
       );
     }
     shifts = (shiftRows as ShiftRow[]) ?? [];
+
+    const firstTemplates = await supabase
+      .from("shift_templates")
+      .select(TEMPLATE_COLS)
+      .eq("space_id", activeSpaceId)
+      .order("name", { ascending: true });
+
+    let templateError = firstTemplates.error;
+    let templateRows = firstTemplates.data as ShiftTemplateRow[] | null;
+
+    if (templateError && /owner_user_id/i.test(templateError.message)) {
+      const legacy = await supabase
+        .from("shift_templates")
+        .select(TEMPLATE_COLS_LEGACY)
+        .eq("space_id", activeSpaceId)
+        .order("name", { ascending: true });
+      templateError = legacy.error;
+      templateRows = (legacy.data as ShiftTemplateRow[] | null) ?? null;
+    }
+
+    if (templateError) {
+      // Table missing or RLS — show page without templates rather than hard-fail.
+      templates = [];
+    } else {
+      templates = templateRows ?? [];
+    }
 
     const { data: memberRows } = await supabase
       .from("space_members")
@@ -98,6 +130,7 @@ export default async function SchedulePage() {
           spaceId={activeSpaceId}
           currentUserId={user.id}
           shifts={shifts}
+          templates={templates}
           members={members}
           profiles={profiles}
         />
