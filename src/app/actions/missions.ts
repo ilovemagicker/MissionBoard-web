@@ -9,6 +9,10 @@ import {
   parseStartReminderMinutes,
   parseStartTimeMinutes,
 } from "@/lib/start-reminder";
+import {
+  DEFAULT_FLAG_ICON,
+  isMissionFlagIconId,
+} from "@/lib/flag-icons";
 import type {
   MissionPriority,
   MissionStatus,
@@ -42,6 +46,10 @@ export async function createMissionAction(formData: FormData) {
           : "medium";
     const decisionMakerRaw = String(formData.get("decision_maker_id") || "").trim();
     const decisionMakerId = decisionMakerRaw || null;
+    const flagIconRaw = String(formData.get("flag_icon") || "").trim();
+    const flagIcon = isMissionFlagIconId(flagIconRaw)
+      ? flagIconRaw
+      : DEFAULT_FLAG_ICON;
 
     const startTimeMinutes = startDate
       ? parseStartTimeMinutes(String(formData.get("start_time") || ""))
@@ -67,6 +75,7 @@ export async function createMissionAction(formData: FormData) {
       creator_id: user.id,
       priority,
       decision_maker_id: decisionMakerId,
+      flag_icon: flagIcon,
     };
     const withStart: Record<string, unknown> = {
       ...baseRow,
@@ -468,6 +477,27 @@ export async function updateMissionPriorityAction(
     const { error } = await supabase
       .from("missions")
       .update({ priority })
+      .eq("id", missionId);
+    if (error) throw error;
+    revalidatePath(`/app/missions/${missionId}`);
+    revalidatePath("/app/missions");
+    return { ok: true as const };
+  } catch (err) {
+    return { error: formatError(err) };
+  }
+}
+
+export async function updateMissionFlagIconAction(
+  missionId: string,
+  flagIcon: string
+) {
+  try {
+    const { supabase } = await requireAuthedClient();
+    const trimmed = String(flagIcon || "").trim();
+    const raw = isMissionFlagIconId(trimmed) ? trimmed : DEFAULT_FLAG_ICON;
+    const { error } = await supabase
+      .from("missions")
+      .update({ flag_icon: raw })
       .eq("id", missionId);
     if (error) throw error;
     revalidatePath(`/app/missions/${missionId}`);

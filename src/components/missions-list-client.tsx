@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { SpaceAnnouncementsBoard } from "@/components/space-announcements-board";
+import { MissionFlagIconView } from "@/components/flag-icon";
 import { statusLabel, t } from "@/lib/i18n";
 import type {
   Locale,
@@ -239,32 +240,35 @@ export function MissionsListClient({
                   href={`/app/missions/${m.id}`}
                   className="flex items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 shadow-sm ring-1 ring-slate-200/80 hover:ring-blue-200"
                 >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-slate-900">
-                      {m.title}
-                      {archived && (
-                        <span className="ml-2 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 ring-1 ring-amber-200">
-                          {t(locale, "archived")}
-                        </span>
-                      )}
-                      {awaiting && (
-                        <span className="ml-2 rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-700 ring-1 ring-violet-200">
-                          {t(locale, "decisionPendingBadge")}
-                        </span>
-                      )}
-                      {m.recurrence_id && (
-                        <span
-                          title={t(locale, "recurrenceIconA11y")}
-                          className="ml-2 rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-700 ring-1 ring-indigo-200"
-                        >
-                          ↻
-                        </span>
-                      )}
-                    </p>
-                    <p className="mt-0.5 text-xs text-slate-500">
-                      {m.due_date ? `Due ${m.due_date}` : "—"}
-                      {sc.total > 0 ? ` · ${sc.done}/${sc.total}` : ""}
-                    </p>
+                  <div className="flex min-w-0 items-start gap-3">
+                    <MissionFlagIconView flagIcon={m.flag_icon} size={32} />
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-slate-900">
+                        {m.title}
+                        {archived && (
+                          <span className="ml-2 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 ring-1 ring-amber-200">
+                            {t(locale, "archived")}
+                          </span>
+                        )}
+                        {awaiting && (
+                          <span className="ml-2 rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-700 ring-1 ring-violet-200">
+                            {t(locale, "decisionPendingBadge")}
+                          </span>
+                        )}
+                        {m.recurrence_id && (
+                          <span
+                            title={t(locale, "recurrenceIconA11y")}
+                            className="ml-2 rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-700 ring-1 ring-indigo-200"
+                          >
+                            ↻
+                          </span>
+                        )}
+                      </p>
+                      <p className="mt-0.5 text-xs text-slate-500">
+                        {m.due_date ? `Due ${m.due_date}` : "—"}
+                        {sc.total > 0 ? ` · ${sc.done}/${sc.total}` : ""}
+                      </p>
+                    </div>
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1">
                     {m.priority && (

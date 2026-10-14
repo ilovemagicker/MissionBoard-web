@@ -22,9 +22,14 @@ import {
   toggleWorkingAction,
   unarchiveMissionAction,
   updateMissionDecisionMakerAction,
+  updateMissionFlagIconAction,
   updateMissionPriorityAction,
   updateMissionStatusAction,
 } from "@/app/actions/missions";
+import {
+  FlagIconPicker,
+  MissionFlagIconView,
+} from "@/components/flag-icon";
 import { MissionAnnouncementsPanel } from "@/components/mission-announcements-panel";
 import { MissionPollsPanel } from "@/components/mission-polls-panel";
 import { MissionRecurrencePanel } from "@/components/mission-recurrence-panel";
@@ -108,6 +113,7 @@ export function MissionDetailClient({
   const [commentBody, setCommentBody] = useState("");
   const [stepComments, setStepComments] = useState<Record<string, string>>({});
   const [panel, setPanel] = useState<PeoplePanel>(null);
+  const [showFlagPicker, setShowFlagPicker] = useState(false);
   const treeRows = flattenStepTree(steps);
 
   function run(fn: () => Promise<{ error?: string; ok?: boolean } | void>) {
@@ -209,8 +215,9 @@ export function MissionDetailClient({
 
       <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200/80">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-3">
+              <MissionFlagIconView flagIcon={mission.flag_icon} size={44} />
               <h1 className="text-2xl font-bold text-slate-900">{mission.title}</h1>
               {mission.recurrence_id && (
                 <span
@@ -257,6 +264,37 @@ export function MissionDetailClient({
               >
                 {t(locale, "workers")} · {workers.length}
               </button>
+            </div>
+            <div className="mt-4 space-y-2 rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-200/80">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-semibold text-slate-800">
+                  {t(locale, "flagIconSection")}
+                </p>
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => setShowFlagPicker((v) => !v)}
+                  className="text-xs font-semibold text-blue-600 hover:text-blue-500"
+                >
+                  {showFlagPicker
+                    ? t(locale, "flagIconCollapse")
+                    : t(locale, "flagIconChange")}
+                </button>
+              </div>
+              {!showFlagPicker && (
+                <MissionFlagIconView flagIcon={mission.flag_icon} size={40} />
+              )}
+              {showFlagPicker && (
+                <FlagIconPicker
+                  locale={locale}
+                  showTitle={false}
+                  value={mission.flag_icon || "flag.fill"}
+                  onChange={(next) => {
+                    setShowFlagPicker(false);
+                    run(() => updateMissionFlagIconAction(mission.id, next));
+                  }}
+                />
+              )}
             </div>
           </div>
           <div className="flex flex-col gap-2">

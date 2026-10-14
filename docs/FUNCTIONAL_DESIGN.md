@@ -77,7 +77,7 @@
 | M7 | 我要進行中 | ✅ | toggle worker |
 | M8 | 已讀紀錄 | ✅ | 開啟詳情寫 reader；點 Chip 看誰／何時（`read_at`） |
 | M9 | 封存／刪除任務 | ✅ | `archive_mission` / `unarchive_mission` + DELETE |
-| M10 | 旗幟圖示 | ⏳ | 選 SF 對應或 Web emoji／icon set |
+| M10 | 旗幟圖示 | ✅ | `missions.flag_icon`；Web emoji 對應 iOS SF Symbol raw values；列表／詳情／建立＋詳情編輯 picker |
 
 ### 3.3 Steps（步驟）
 

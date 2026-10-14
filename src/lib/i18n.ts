@@ -615,6 +615,9 @@ const dict = {
     onboardingSettingsTitle: "我的",
     onboardingSettingsBody: "在「我的」調整語言、通知偏好與帳號設定。隨時可再回來。",
     onboardingSettingsCta: "前往設定",
+    flagIconSection: "圖示",
+    flagIconChange: "更換",
+    flagIconCollapse: "收起",
   },
   en: {
     appName: "Work Assistants",
@@ -1211,6 +1214,9 @@ const dict = {
     onboardingSettingsTitle: "Me",
     onboardingSettingsBody: "Set language, notification preferences, and account options under Me anytime.",
     onboardingSettingsCta: "Go to Settings",
+    flagIconSection: "Icon",
+    flagIconChange: "Change",
+    flagIconCollapse: "Collapse",
   },
   ja: {
     appName: "Work Assistants",
@@ -1807,6 +1813,9 @@ const dict = {
     onboardingSettingsTitle: "マイページ",
     onboardingSettingsBody: "「マイページ」で言語・通知・アカウント設定をいつでも変更できます。",
     onboardingSettingsCta: "設定へ",
+    flagIconSection: "アイコン",
+    flagIconChange: "変更",
+    flagIconCollapse: "閉じる",
   },
   ko: {
     appName: "Work Assistants",
@@ -2403,6 +2412,9 @@ const dict = {
     onboardingSettingsTitle: "내 정보",
     onboardingSettingsBody: "「내 정보」에서 언어, 알림 환경설정, 계정을 언제든 변경할 수 있습니다.",
     onboardingSettingsCta: "설정으로",
+    flagIconSection: "아이콘",
+    flagIconChange: "변경",
+    flagIconCollapse: "접기",
   },
   "zh-Hans": {
     appName: "Work Assistants",
@@ -2999,6 +3011,9 @@ const dict = {
     onboardingSettingsTitle: "我的",
     onboardingSettingsBody: "在「我的」调整语言、通知偏好与账号设置。随时可再回来。",
     onboardingSettingsCta: "前往设置",
+    flagIconSection: "图标",
+    flagIconChange: "更换",
+    flagIconCollapse: "收起",
   },
 } as const;
 
