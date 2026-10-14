@@ -4,8 +4,16 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { SpaceAnnouncementsBoard } from "@/components/space-announcements-board";
 import { statusLabel, t } from "@/lib/i18n";
-import type { Locale, MissionPriority, MissionRow } from "@/lib/types";
+import type {
+  Locale,
+  MissionAnnouncementRow,
+  MissionPriority,
+  MissionRow,
+  ProfileRow,
+  SpaceRole,
+} from "@/lib/types";
 
 type Filter = "all" | "active" | "done" | "awaitingDecision";
 type PriorityFilter = "all" | MissionPriority;
@@ -38,12 +46,26 @@ export function MissionsListClient({
   stepCounts,
   showArchived,
   spaceId,
+  myRole,
+  spaceAnnouncementsEnabled = false,
+  spaceAnnouncements = [],
+  spaceDismissedIds = [],
+  spaceReadByMe = [],
+  spaceAnnouncementReadCounts = {},
+  announcementProfiles = {},
 }: {
   missions: MissionRow[];
   locale: Locale;
   stepCounts: Record<string, { done: number; total: number }>;
   showArchived: boolean;
   spaceId: string;
+  myRole: SpaceRole | null;
+  spaceAnnouncementsEnabled?: boolean;
+  spaceAnnouncements?: MissionAnnouncementRow[];
+  spaceDismissedIds?: string[];
+  spaceReadByMe?: string[];
+  spaceAnnouncementReadCounts?: Record<string, number>;
+  announcementProfiles?: Record<string, ProfileRow>;
 }) {
   const router = useRouter();
   const [missions, setMissions] = useState(initialMissions);
@@ -121,8 +143,23 @@ export function MissionsListClient({
     router.push(url);
   }
 
+  const canPostSpaceAnnouncement =
+    myRole === "owner" || myRole === "admin";
+
   return (
     <div className="space-y-4">
+      <SpaceAnnouncementsBoard
+        locale={locale}
+        spaceId={spaceId}
+        announcements={spaceAnnouncements}
+        dismissedIds={spaceDismissedIds}
+        readByMe={spaceReadByMe}
+        readCounts={spaceAnnouncementReadCounts}
+        profiles={announcementProfiles}
+        canPost={canPostSpaceAnnouncement}
+        enabled={spaceAnnouncementsEnabled}
+      />
+
       <div className="flex flex-wrap items-center gap-2">
         <input
           value={q}

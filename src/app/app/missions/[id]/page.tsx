@@ -11,8 +11,15 @@ import {
   getSession,
   getSpacesForUser,
 } from "@/lib/session";
+import { isSchemaMissingError } from "@/lib/errors";
 import type {
+  MissionAnnouncementReadRow,
+  MissionAnnouncementRow,
   MissionCommentRow,
+  MissionPollOptionRow,
+  MissionPollResultRow,
+  MissionPollRow,
+  MissionPollVoteRow,
   MissionReaderRow,
   MissionRecurrenceRow,
   MissionRow,
@@ -117,6 +124,69 @@ export default async function MissionDetailPage({
     recurrence = (rec as MissionRecurrenceRow) ?? null;
   }
 
+  let pollsEnabled = true;
+  let polls: MissionPollRow[] = [];
+  let pollOptions: MissionPollOptionRow[] = [];
+  let pollVotes: MissionPollVoteRow[] = [];
+  let pollResults: MissionPollResultRow[] = [];
+  let announcements: MissionAnnouncementRow[] = [];
+  let announcementReads: MissionAnnouncementReadRow[] = [];
+
+  {
+    const { data: pollRows, error: pollErr } = await supabase
+      .from("mission_polls")
+      .select(
+        "id,mission_id,space_id,created_by,question,allow_multiple,anonymous,deadline_at,closed_at,closed_by,final_option_ids,created_at"
+      )
+      .eq("mission_id", id)
+      .order("created_at", { ascending: false });
+    if (pollErr) {
+      if (isSchemaMissingError(pollErr)) pollsEnabled = false;
+    } else {
+      polls = (pollRows as MissionPollRow[]) ?? [];
+      const pollIds = polls.map((p) => p.id);
+      if (pollIds.length > 0) {
+        const [{ data: optRows }, { data: voteRows }, { data: resultRows }] =
+          await Promise.all([
+            supabase
+              .from("mission_poll_options")
+              .select("id,poll_id,position,label")
+              .in("poll_id", pollIds)
+              .order("position"),
+            supabase
+              .from("mission_poll_votes")
+              .select("poll_id,option_id,user_id,created_at")
+              .in("poll_id", pollIds),
+            supabase.rpc("poll_results", { p_poll_ids: pollIds }),
+          ]);
+        pollOptions = (optRows as MissionPollOptionRow[]) ?? [];
+        pollVotes = (voteRows as MissionPollVoteRow[]) ?? [];
+        pollResults = (resultRows as MissionPollResultRow[]) ?? [];
+      }
+    }
+
+    const { data: annRows, error: annErr } = await supabase
+      .from("mission_announcements")
+      .select(
+        "id,mission_id,space_id,author_id,body,pinned,created_at,updated_at,title"
+      )
+      .eq("mission_id", id)
+      .order("created_at", { ascending: false });
+    if (annErr) {
+      if (isSchemaMissingError(annErr)) pollsEnabled = false;
+    } else {
+      announcements = (annRows as MissionAnnouncementRow[]) ?? [];
+      const annIds = announcements.map((a) => a.id);
+      if (annIds.length > 0) {
+        const { data: readRows } = await supabase
+          .from("mission_announcement_reads")
+          .select("announcement_id,user_id,read_at")
+          .in("announcement_id", annIds);
+        announcementReads = (readRows as MissionAnnouncementReadRow[]) ?? [];
+      }
+    }
+  }
+
   const profileIds = new Set<string>();
   for (const m of members ?? []) profileIds.add(m.user_id as string);
   for (const s of steps ?? []) if (s.assignee_id) profileIds.add(s.assignee_id as string);
@@ -127,6 +197,16 @@ export default async function MissionDetailPage({
   if (mission.decision_maker_id) profileIds.add(mission.decision_maker_id as string);
   if (mission.decision_requested_by) profileIds.add(mission.decision_requested_by as string);
   if (mission.decision_approved_by) profileIds.add(mission.decision_approved_by as string);
+  for (const p of polls) profileIds.add(p.created_by);
+  for (const v of pollVotes) profileIds.add(v.user_id);
+  for (const a of announcements) profileIds.add(a.author_id);
+  for (const r of announcementReads) profileIds.add(r.user_id);
+
+  const announcementReadCounts: Record<string, number> = {};
+  for (const r of announcementReads) {
+    announcementReadCounts[r.announcement_id] =
+      (announcementReadCounts[r.announcement_id] ?? 0) + 1;
+  }
 
   const profiles: Record<string, ProfileRow> = {};
   if (profileIds.size > 0) {
@@ -167,6 +247,13 @@ export default async function MissionDetailPage({
         userId={user.id}
         claimRequests={(claimRows as StepClaimRequestRow[]) ?? []}
         recurrence={recurrence}
+        pollsEnabled={pollsEnabled}
+        polls={polls}
+        pollOptions={pollOptions}
+        pollVotes={pollVotes}
+        pollResults={pollResults}
+        announcements={announcements}
+        announcementReadCounts={announcementReadCounts}
       />
     </AppShell>
   );

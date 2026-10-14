@@ -24,6 +24,8 @@ import {
   updateMissionPriorityAction,
   updateMissionStatusAction,
 } from "@/app/actions/missions";
+import { MissionAnnouncementsPanel } from "@/components/mission-announcements-panel";
+import { MissionPollsPanel } from "@/components/mission-polls-panel";
 import { MissionRecurrencePanel } from "@/components/mission-recurrence-panel";
 import { roleLabel, statusLabel, t, tf } from "@/lib/i18n";
 import { formatDateTime } from "@/lib/format";
@@ -34,7 +36,12 @@ import {
 } from "@/lib/step-tree";
 import type {
   Locale,
+  MissionAnnouncementRow,
   MissionCommentRow,
+  MissionPollOptionRow,
+  MissionPollResultRow,
+  MissionPollRow,
+  MissionPollVoteRow,
   MissionPriority,
   MissionReaderRow,
   MissionRecurrenceRow,
@@ -61,6 +68,13 @@ export function MissionDetailClient({
   userId,
   claimRequests,
   recurrence,
+  pollsEnabled = false,
+  polls = [],
+  pollOptions = [],
+  pollVotes = [],
+  pollResults = [],
+  announcements = [],
+  announcementReadCounts = {},
 }: {
   locale: Locale;
   mission: MissionRow;
@@ -74,6 +88,13 @@ export function MissionDetailClient({
   userId: string;
   claimRequests: StepClaimRequestRow[];
   recurrence: MissionRecurrenceRow | null;
+  pollsEnabled?: boolean;
+  polls?: MissionPollRow[];
+  pollOptions?: MissionPollOptionRow[];
+  pollVotes?: MissionPollVoteRow[];
+  pollResults?: MissionPollResultRow[];
+  announcements?: MissionAnnouncementRow[];
+  announcementReadCounts?: Record<string, number>;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -104,6 +125,9 @@ export function MissionDetailClient({
     myRole === "owner" ||
     myRole === "admin";
   const canEditMeta = canAssign;
+  const isSpaceEditor =
+    myRole === "owner" || myRole === "admin" || myRole === "member";
+  const isAdminLike = myRole === "owner" || myRole === "admin";
   const isDecisionMaker = mission.decision_maker_id === userId;
   const awaitingDecision =
     !!mission.decision_maker_id &&
@@ -276,6 +300,41 @@ export function MissionDetailClient({
           </div>
         </div>
       </section>
+
+      <MissionAnnouncementsPanel
+        locale={locale}
+        missionId={mission.id}
+        spaceId={mission.space_id}
+        announcements={announcements}
+        readCounts={announcementReadCounts}
+        profiles={profiles}
+        canPost={isSpaceEditor && !isArchived}
+        canModerate={(a) =>
+          a.author_id === userId ||
+          mission.creator_id === userId ||
+          isAdminLike
+        }
+        enabled={pollsEnabled}
+        isArchived={isArchived}
+      />
+
+      <MissionPollsPanel
+        locale={locale}
+        missionId={mission.id}
+        polls={polls}
+        options={pollOptions}
+        votes={pollVotes}
+        results={pollResults}
+        profiles={profiles}
+        userId={userId}
+        canVote={isSpaceEditor && !isArchived}
+        canClose={(p) =>
+          p.created_by === userId || isDecisionMaker || isAdminLike
+        }
+        canDelete={(p) => p.created_by === userId || isAdminLike}
+        enabled={pollsEnabled}
+        isArchived={isArchived}
+      />
 
       <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200/80">
         <h2 className="mb-3 text-sm font-semibold tracking-wide text-slate-500">
