@@ -44,17 +44,35 @@ export default async function SchedulePage() {
   const profiles: Record<string, ProfileRow> = {};
 
   if (activeSpaceId) {
-    const { data: shiftRows, error } = await supabase
+    const SHIFT_COLS =
+      "id,space_id,user_id,start_at,end_at,title,note,color,text_color,template_id,source,status,created_at,updated_at,generation_batch_id";
+    const SHIFT_COLS_LEGACY =
+      "id,space_id,user_id,start_at,end_at,title,note,color,text_color,template_id,source,status,created_at,updated_at";
+
+    const firstShifts = await supabase
       .from("shifts")
-      .select(
-        "id,space_id,user_id,start_at,end_at,title,note,color,text_color,template_id,source,status,created_at,updated_at"
-      )
+      .select(SHIFT_COLS)
       .eq("space_id", activeSpaceId)
       .eq("status", "scheduled")
       .order("start_at", { ascending: true })
       .limit(2000);
 
-    if (error) {
+    let shiftError = firstShifts.error;
+    let shiftRows = firstShifts.data as ShiftRow[] | null;
+
+    if (shiftError && /generation_batch_id/i.test(shiftError.message)) {
+      const legacy = await supabase
+        .from("shifts")
+        .select(SHIFT_COLS_LEGACY)
+        .eq("space_id", activeSpaceId)
+        .eq("status", "scheduled")
+        .order("start_at", { ascending: true })
+        .limit(2000);
+      shiftError = legacy.error;
+      shiftRows = (legacy.data as ShiftRow[] | null) ?? null;
+    }
+
+    if (shiftError) {
       return (
         <AppShell
           locale={locale}
@@ -64,12 +82,12 @@ export default async function SchedulePage() {
           nav="schedule"
         >
           <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">
-            {error.message}
+            {shiftError.message}
           </p>
         </AppShell>
       );
     }
-    shifts = (shiftRows as ShiftRow[]) ?? [];
+    shifts = shiftRows ?? [];
 
     const firstTemplates = await supabase
       .from("shift_templates")

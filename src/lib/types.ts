@@ -119,6 +119,8 @@ export type ShiftRow = {
   status: ShiftStatus;
   created_at: string;
   updated_at: string;
+  /** 011: batch id for rotation generate undo; may be missing if 011 not applied. */
+  generation_batch_id?: string | null;
 };
 
 export type ShiftTemplateRow = {
