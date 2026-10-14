@@ -3,6 +3,7 @@
 import { FormEvent, useMemo, useState, useTransition } from "react";
 import { createMissionAction } from "@/app/actions/missions";
 import { t } from "@/lib/i18n";
+import { deviceTimezone } from "@/lib/start-reminder";
 import type { Locale, ProfileRow, RecurrenceFrequency } from "@/lib/types";
 
 const WEEKDAY_KEYS = [
@@ -20,14 +21,18 @@ export function CreateMissionForm({
   spaceId,
   members,
   profiles,
+  startReminderEnabled = true,
 }: {
   locale: Locale;
   spaceId: string;
   members: { user_id: string; role: string }[];
   profiles: Record<string, ProfileRow>;
+  startReminderEnabled?: boolean;
 }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [startDate, setStartDate] = useState("");
+  const [startTime, setStartTime] = useState("");
   const [repeat, setRepeat] = useState(false);
   const [frequency, setFrequency] = useState<RecurrenceFrequency>("daily");
   const defaultWeekday = useMemo(() => {
@@ -50,13 +55,11 @@ export function CreateMissionForm({
     const fd = new FormData(e.currentTarget);
     fd.set("space_id", spaceId);
     fd.set("recurrence_enabled", repeat ? "1" : "0");
+    fd.set("start_timezone", deviceTimezone());
     if (repeat) {
       fd.set("recurrence_frequency", frequency);
       fd.set("recurrence_weekdays", weekdays.join(","));
-      fd.set(
-        "recurrence_timezone",
-        Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Hong_Kong"
-      );
+      fd.set("recurrence_timezone", deviceTimezone());
     }
     setError(null);
     startTransition(async () => {
@@ -99,6 +102,8 @@ export function CreateMissionForm({
           <input
             type="date"
             name="start_date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
             className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm"
           />
         </label>
@@ -113,6 +118,58 @@ export function CreateMissionForm({
           />
         </label>
       </div>
+      {startReminderEnabled && (
+        <fieldset className="space-y-3 rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-200/80">
+          <p className="text-sm font-semibold text-slate-800">
+            {t(locale, "startReminderSection")}
+          </p>
+          <p className="text-[11px] text-slate-500">
+            {t(locale, "startReminderPushNote")}
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block text-sm">
+              <span className="mb-1 block font-medium text-slate-700">
+                {t(locale, "startTime")}
+              </span>
+              <input
+                type="time"
+                name="start_time"
+                value={startTime}
+                disabled={!startDate}
+                onChange={(e) => setStartTime(e.target.value)}
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm disabled:bg-slate-100"
+              />
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1 block font-medium text-slate-700">
+                {t(locale, "startReminder")}
+              </span>
+              <select
+                name="start_reminder_minutes"
+                defaultValue="default"
+                disabled={!startDate || !startTime}
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm disabled:bg-slate-100"
+              >
+                <option value="default">{t(locale, "startReminderDefault")}</option>
+                <option value="0">{t(locale, "startReminderOff")}</option>
+                <option value="15">{t(locale, "startReminder15")}</option>
+                <option value="60">{t(locale, "startReminder60")}</option>
+                <option value="1440">{t(locale, "startReminder1440")}</option>
+              </select>
+            </label>
+          </div>
+          {!startDate && (
+            <p className="text-[11px] text-slate-400">
+              {t(locale, "startReminderNeedDate")}
+            </p>
+          )}
+          {startDate && !startTime && (
+            <p className="text-[11px] text-slate-400">
+              {t(locale, "startReminderNeedTime")}
+            </p>
+          )}
+        </fieldset>
+      )}
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block text-sm">
           <span className="mb-1 block font-medium text-slate-700">

@@ -45,15 +45,35 @@ export default async function MissionDetailPage({
   const activeSpaceId = await getActiveSpaceId(spaces);
   const supabase = await createClient();
 
-  const { data: mission, error } = await supabase
-    .from("missions")
-    .select(
-      "id,space_id,title,description,start_date,due_date,status,flag_icon,creator_id,created_at,updated_at,archived_at,priority,decision_maker_id,decision_requested_at,decision_requested_by,decision_approved_at,decision_approved_by,recurrence_id"
-    )
-    .eq("id", id)
-    .maybeSingle();
+  const missionSelectBase =
+    "id,space_id,title,description,start_date,due_date,status,flag_icon,creator_id,created_at,updated_at,archived_at,priority,decision_maker_id,decision_requested_at,decision_requested_by,decision_approved_at,decision_approved_by,recurrence_id";
+  const missionSelectFull =
+    missionSelectBase +
+    ",start_time_minutes,start_timezone,start_reminder_minutes";
 
-  if (error || !mission) notFound();
+  let startReminderEnabled = true;
+  let mission: MissionRow | null = null;
+  {
+    const full = await supabase
+      .from("missions")
+      .select(missionSelectFull)
+      .eq("id", id)
+      .maybeSingle();
+    if (full.error && isSchemaMissingError(full.error)) {
+      startReminderEnabled = false;
+      const retry = await supabase
+        .from("missions")
+        .select(missionSelectBase)
+        .eq("id", id)
+        .maybeSingle();
+      if (retry.error || !retry.data) notFound();
+      mission = retry.data as unknown as MissionRow;
+    } else if (full.error || !full.data) {
+      notFound();
+    } else {
+      mission = full.data as unknown as MissionRow;
+    }
+  }
 
   // Mark read (best-effort)
   await markMissionReadAction(id);
@@ -103,7 +123,7 @@ export default async function MissionDetailPage({
   const workers = (workerRows as MissionWorkerRow[]) ?? [];
 
   let recurrence: MissionRecurrenceRow | null = null;
-  const recurrenceId = (mission as MissionRow).recurrence_id;
+  const recurrenceId = mission.recurrence_id;
   if (recurrenceId) {
     const { data: rec } = await supabase
       .from("mission_recurrences")
@@ -236,7 +256,7 @@ export default async function MissionDetailPage({
       </div>
       <MissionDetailClient
         locale={locale}
-        mission={mission as MissionRow}
+        mission={mission}
         steps={(steps as MissionStepRow[]) ?? []}
         comments={(comments as MissionCommentRow[]) ?? []}
         members={(members as { user_id: string; role: string }[]) ?? []}
@@ -254,6 +274,7 @@ export default async function MissionDetailPage({
         pollResults={pollResults}
         announcements={announcements}
         announcementReadCounts={announcementReadCounts}
+        startReminderEnabled={startReminderEnabled}
       />
     </AppShell>
   );

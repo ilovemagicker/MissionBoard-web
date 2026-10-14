@@ -4,7 +4,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/config";
-import { formatError } from "@/lib/errors";
+import { formatError, isSchemaMissingError } from "@/lib/errors";
+import {
+  parseStartReminderMinutes,
+  parseStartTimeMinutes,
+} from "@/lib/start-reminder";
 import type {
   MissionPriority,
   MissionStatus,
@@ -39,28 +43,59 @@ export async function createMissionAction(formData: FormData) {
     const decisionMakerRaw = String(formData.get("decision_maker_id") || "").trim();
     const decisionMakerId = decisionMakerRaw || null;
 
+    const startTimeMinutes = startDate
+      ? parseStartTimeMinutes(String(formData.get("start_time") || ""))
+      : null;
+    const startReminderMinutes = startDate
+      ? parseStartReminderMinutes(String(formData.get("start_reminder_minutes") || ""))
+      : null;
+    const startTimezoneRaw = String(formData.get("start_timezone") || "").trim();
+    const startTimezone =
+      startDate && startTimeMinutes != null
+        ? startTimezoneRaw || null
+        : null;
+
     if (!spaceId || !title) throw new Error("Title and space are required");
 
-    const { data, error } = await supabase
+    const baseRow: Record<string, unknown> = {
+      space_id: spaceId,
+      title,
+      description,
+      start_date: startDate,
+      due_date: dueDate,
+      status: "todo",
+      creator_id: user.id,
+      priority,
+      decision_maker_id: decisionMakerId,
+    };
+    const withStart: Record<string, unknown> = {
+      ...baseRow,
+      start_time_minutes: startTimeMinutes,
+      start_timezone: startTimezone,
+      start_reminder_minutes: startReminderMinutes,
+    };
+
+    let { data, error } = await supabase
       .from("missions")
-      .insert({
-        space_id: spaceId,
-        title,
-        description,
-        start_date: startDate,
-        due_date: dueDate,
-        status: "todo",
-        creator_id: user.id,
-        priority,
-        decision_maker_id: decisionMakerId,
-      })
+      .insert(withStart)
       .select("id")
       .single();
 
+    if (error && isSchemaMissingError(error)) {
+      const retry = await supabase
+        .from("missions")
+        .insert(baseRow)
+        .select("id")
+        .single();
+      data = retry.data;
+      error = retry.error;
+    }
+
     if (error) throw error;
+    if (!data?.id) throw new Error("Failed to create mission");
 
     const recurrenceEnabled = String(formData.get("recurrence_enabled") || "") === "1";
-    if (recurrenceEnabled && data?.id) {
+    if (recurrenceEnabled) {
       await attachRecurrenceFromForm(supabase, user.id, spaceId, data.id, formData, startDate);
     }
 
@@ -433,6 +468,59 @@ export async function updateMissionDecisionMakerAction(
     if (error) throw error;
     revalidatePath(`/app/missions/${missionId}`);
     revalidatePath("/app/missions");
+    return { ok: true as const };
+  } catch (err) {
+    return { error: formatError(err) };
+  }
+}
+
+export async function updateMissionStartScheduleAction(
+  missionId: string,
+  input: {
+    startDate: string | null;
+    startTimeMinutes: number | null;
+    startTimezone: string | null;
+    startReminderMinutes: number | null;
+  }
+) {
+  try {
+    const { supabase } = await requireAuthedClient();
+    const startDate = input.startDate || null;
+    const startTimeMinutes =
+      startDate && input.startTimeMinutes != null ? input.startTimeMinutes : null;
+    const startTimezone =
+      startDate && startTimeMinutes != null
+        ? input.startTimezone?.trim() || null
+        : null;
+    const startReminderMinutes =
+      startDate && startTimeMinutes != null
+        ? input.startReminderMinutes
+        : null;
+
+    const payload: Record<string, unknown> = {
+      start_date: startDate,
+      start_time_minutes: startTimeMinutes,
+      start_timezone: startTimezone,
+      start_reminder_minutes: startReminderMinutes,
+    };
+    const { error } = await supabase
+      .from("missions")
+      .update(payload)
+      .eq("id", missionId);
+    if (error) {
+      if (isSchemaMissingError(error)) {
+        const { error: err2 } = await supabase
+          .from("missions")
+          .update({ start_date: startDate })
+          .eq("id", missionId);
+        if (err2) throw err2;
+      } else {
+        throw error;
+      }
+    }
+    revalidatePath(`/app/missions/${missionId}`);
+    revalidatePath("/app/missions");
+    revalidatePath("/app/calendar");
     return { ok: true as const };
   } catch (err) {
     return { error: formatError(err) };
