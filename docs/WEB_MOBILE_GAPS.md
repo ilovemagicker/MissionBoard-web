@@ -3,7 +3,7 @@
 產品名：**Work Assistants**／任務助理。Repo 仍為 `MissionBoard-web`。  
 後端：與 MissionBoard-iOS 同一 Supabase；canonical migrations 在 iOS repo，`web/supabase/migrations` 僅鏡像。
 
-更新日期：2026-10-14（批次產生後）
+更新日期：2026-10-14（排班匯出後）
 
 ## 已上線（Web）
 
@@ -17,6 +17,7 @@
 - 排班 **admin 代建／油漆**：空間 owner／admin 可為其他成員建班／編輯／刪除；油漆模式（選範本或自訂時段 → 點日曆空日畫班；可選對象；完成離開；復原上一筆）；鏡像 `011`（`shifts_insert_admin` + `generation_batch_id`）
 - 排班 **請假／換班**：登記休假（日／區間／0.25 天比例；本人或 admin 編輯刪除）；換班／代班申請（RPC）、同意／核准／拒絕／取消；空間核准模式（admin_required／peer_accept）；鏡像 `012`／`013`／`014`／`027`
 - 排班 **整月批次產生**：選月份／範本／對象（admin 可多人）／輪替樣式（每天、平日、做四休四、做五休二）／同相位或錯開／略過或覆寫；寫入 `source=generated` + `generation_batch_id`；可復原上一批（localStorage 記 batch id）；對齊 iOS RotationGenerate 最小可用切片
+- 排班 **匯出／分享**：目前月份 → `.ics` 日曆下載、月班表 PNG（canvas）、列印預覽；可選本人／全成員／指定成員。鏡像 `015_schedule_share.sql`（家人 viewer 分享碼）；Web 匯出為純前端，不依賴 `schedule_share_codes`
 - Free／Pro UI（仍以 mock／localStorage 為主；`022` 鏡像已備）
 
 ## 排班相對 mobile 缺口（優先下一波）
@@ -26,7 +27,7 @@
 - ~~批次產生／generation batch（`011`）~~ ✅（整月 UI＋undo last batch；完整自訂 pattern wizard 仍簡於 iOS）
 - ~~請假（`012`）~~ ✅
 - ~~換班申請／核准（`013`／`014`／`027`）~~ ✅
-- 排班分享圖／匯出日曆（`015`）
+- ~~排班分享圖／匯出日曆（`015`）~~ ✅（Web：client ICS＋PNG／列印；`015` 家人分享碼僅鏡像，未做 Web redeem UI）
 - Widget／本地提醒（mobile-only）
 
 ## 其它產品缺口（非排班）
@@ -44,7 +45,7 @@
 3. ~~Admin 代建班／編輯他人／油漆模式~~ ✅  
 4. ~~請假／換班~~ ✅  
 5. ~~整月批次產生／undo batch~~ ✅  
-6. 任務進階功能與真實 Pro 讀取；排班分享／匯出（`015`）  
+6. ~~排班分享／匯出（`015`）~~ ✅（client export）；任務進階功能與真實 Pro 讀取  
 
 Auth redirect（Cloudflare／自訂網域）：`https://app.onyxlab.dev/auth/callback`（與 Vercel 網域並存於 Supabase Redirect URLs）。
 

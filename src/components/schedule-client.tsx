@@ -22,6 +22,7 @@ import {
   ScheduleSwapRequestSheet,
 } from "@/components/schedule-swap-panel";
 import { ScheduleGeneratePanel } from "@/components/schedule-generate-panel";
+import { ScheduleExportPanel } from "@/components/schedule-export-panel";
 import {
   addMonths,
   daysInMonth,
@@ -180,6 +181,7 @@ function shiftsOnDayForUser(
 export function ScheduleClient({
   locale,
   spaceId,
+  spaceName,
   currentUserId,
   shifts,
   templates,
@@ -191,6 +193,7 @@ export function ScheduleClient({
 }: {
   locale: Locale;
   spaceId: string;
+  spaceName: string;
   currentUserId: string;
   shifts: ShiftRow[];
   templates: ShiftTemplateRow[];
@@ -235,6 +238,7 @@ export function ScheduleClient({
     null
   );
   const [showGenerate, setShowGenerate] = useState(false);
+  const [showExport, setShowExport] = useState(false);
 
   const weekdays = locale === "en" ? WEEKDAYS_EN : WEEKDAYS_ZH;
 
@@ -724,6 +728,18 @@ export function ScheduleClient({
               className="inline-flex h-10 items-center rounded-xl bg-sky-50 px-4 text-sm font-semibold text-sky-800 ring-1 ring-sky-200 hover:bg-sky-100"
             >
               {t(locale, "scheduleGenerate")}
+            </button>
+          ) : null}
+          {!paintMode ? (
+            <button
+              type="button"
+              onClick={() => {
+                setShowExport(true);
+                setError(null);
+              }}
+              className="inline-flex h-10 items-center rounded-xl bg-emerald-50 px-4 text-sm font-semibold text-emerald-800 ring-1 ring-emerald-200 hover:bg-emerald-100"
+            >
+              {t(locale, "scheduleExport")}
             </button>
           ) : null}
           <button
@@ -1766,6 +1782,19 @@ export function ScheduleClient({
           shifts={shifts}
           cursorMonth={cursor}
           onClose={() => setShowGenerate(false)}
+        />
+      ) : null}
+
+      {showExport ? (
+        <ScheduleExportPanel
+          locale={locale}
+          spaceName={spaceName}
+          currentUserId={currentUserId}
+          members={members}
+          profiles={profiles}
+          shifts={shifts}
+          cursorMonth={cursor}
+          onClose={() => setShowExport(false)}
         />
       ) : null}
 
