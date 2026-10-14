@@ -3,7 +3,7 @@
 產品名：**Work Assistants**／任務助理。Repo 仍為 `MissionBoard-web`。  
 後端：與 MissionBoard-iOS 同一 Supabase；canonical migrations 在 iOS repo，`web/supabase/migrations` 僅鏡像。
 
-更新日期：2026-10-14（admin 代建班／油漆模式後）
+更新日期：2026-10-14（請假／換班後）
 
 ## 已上線（Web）
 
@@ -15,6 +15,7 @@
 - 排班 **W1**：`/app/schedule` 月格、自己班次 CRUD、當日上班／休息
 - 排班 **班次範本（最小）**：列表／新增／編輯／刪除；套用到所選日；migrations 鏡像 `009`／`010`／`028`
 - 排班 **admin 代建／油漆**：空間 owner／admin 可為其他成員建班／編輯／刪除；油漆模式（選範本或自訂時段 → 點日曆空日畫班；可選對象；完成離開；復原上一筆）；鏡像 `011`（`shifts_insert_admin` + `generation_batch_id`）
+- 排班 **請假／換班**：登記休假（日／區間／0.25 天比例；本人或 admin 編輯刪除）；換班／代班申請（RPC）、同意／核准／拒絕／取消；空間核准模式（admin_required／peer_accept）；鏡像 `012`／`013`／`014`／`027`
 - Free／Pro UI（仍以 mock／localStorage 為主；`022` 鏡像已備）
 
 ## 排班相對 mobile 缺口（優先下一波）
@@ -22,8 +23,8 @@
 - ~~班次範本 CRUD + 套用到所選日~~ ✅
 - ~~油漆模式（快速畫班）／為他人建班／admin 編輯他人班次~~ ✅（尚未：整月批次產生 UI）
 - 批次產生／generation batch（`011` 欄位已鏡像；UI／undo batch 仍缺）
-- 請假（`012`）
-- 換班申請／核准（`013`／`014`／`027`）
+- ~~請假（`012`）~~ ✅
+- ~~換班申請／核准（`013`／`014`／`027`）~~ ✅
 - 排班分享圖／匯出日曆（`015`）
 - Widget／本地提醒（mobile-only）
 
@@ -40,7 +41,7 @@
 1. ~~Schedule W1~~ ✅  
 2. ~~範本列表＋套用到所選日（最小 slice）~~ ✅  
 3. ~~Admin 代建班／編輯他人／油漆模式~~ ✅  
-4. 請假／換班  
+4. ~~請假／換班~~ ✅  
 5. 任務進階功能與真實 Pro 讀取  
 
 Auth redirect（Cloudflare／自訂網域）：`https://app.onyxlab.dev/auth/callback`（與 Vercel 網域並存於 Supabase Redirect URLs）。
