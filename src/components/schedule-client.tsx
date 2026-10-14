@@ -21,6 +21,7 @@ import {
   ScheduleSwapInbox,
   ScheduleSwapRequestSheet,
 } from "@/components/schedule-swap-panel";
+import { ScheduleGeneratePanel } from "@/components/schedule-generate-panel";
 import {
   addMonths,
   daysInMonth,
@@ -233,6 +234,7 @@ export function ScheduleClient({
   const [swapRequestShift, setSwapRequestShift] = useState<ShiftRow | null>(
     null
   );
+  const [showGenerate, setShowGenerate] = useState(false);
 
   const weekdays = locale === "en" ? WEEKDAYS_EN : WEEKDAYS_ZH;
 
@@ -710,6 +712,18 @@ export function ScheduleClient({
               className="inline-flex h-10 items-center rounded-xl bg-violet-50 px-4 text-sm font-semibold text-violet-700 ring-1 ring-violet-200 hover:bg-violet-100"
             >
               {t(locale, "schedulePaintMode")}
+            </button>
+          ) : null}
+          {!paintMode ? (
+            <button
+              type="button"
+              onClick={() => {
+                setShowGenerate(true);
+                setError(null);
+              }}
+              className="inline-flex h-10 items-center rounded-xl bg-sky-50 px-4 text-sm font-semibold text-sky-800 ring-1 ring-sky-200 hover:bg-sky-100"
+            >
+              {t(locale, "scheduleGenerate")}
             </button>
           ) : null}
           <button
@@ -1737,6 +1751,22 @@ export function ScheduleClient({
             </div>
           </div>
         </div>
+      ) : null}
+
+
+      {showGenerate ? (
+        <ScheduleGeneratePanel
+          locale={locale}
+          spaceId={spaceId}
+          currentUserId={currentUserId}
+          isAdmin={isAdmin}
+          members={members}
+          profiles={profiles}
+          templates={templates}
+          shifts={shifts}
+          cursorMonth={cursor}
+          onClose={() => setShowGenerate(false)}
+        />
       ) : null}
 
       <ScheduleLeavePanel
