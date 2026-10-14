@@ -596,6 +596,8 @@ const dict = {
     signupSuccessVerify: "註冊成功。若需驗證信箱，請到信箱點確認連結；否則可直接登入。",
     loginFailed: "登入失敗",
     googleSignInFailed: "Google 登入失敗",
+    offlineBanner: "目前離線，部分操作可能失敗",
+    offlineBannerDismiss: "關閉",
   },
   en: {
     appName: "Work Assistants",
@@ -1173,6 +1175,8 @@ const dict = {
     signupSuccessVerify: "Account created. If email confirmation is required, check your inbox; otherwise you can sign in now.",
     loginFailed: "Sign-in failed",
     googleSignInFailed: "Google sign-in failed",
+    offlineBanner: "You're offline. Some actions may fail.",
+    offlineBannerDismiss: "Dismiss",
   },
   ja: {
     appName: "Work Assistants",
@@ -1750,6 +1754,8 @@ const dict = {
     signupSuccessVerify: "登録しました。確認メールが必要な場合は受信箱を確認してください。不要ならそのままサインインできます。",
     loginFailed: "サインインに失敗しました",
     googleSignInFailed: "Google サインインに失敗しました",
+    offlineBanner: "オフラインです。一部の操作が失敗する可能性があります。",
+    offlineBannerDismiss: "閉じる",
   },
   ko: {
     appName: "Work Assistants",
@@ -2327,6 +2333,8 @@ const dict = {
     signupSuccessVerify: "가입되었습니다. 이메일 확인이 필요하면 받은편지함을 확인하세요. 그렇지 않으면 바로 로그인할 수 있습니다.",
     loginFailed: "로그인 실패",
     googleSignInFailed: "Google 로그인 실패",
+    offlineBanner: "현재 오프라인입니다. 일부 작업이 실패할 수 있습니다.",
+    offlineBannerDismiss: "닫기",
   },
   "zh-Hans": {
     appName: "Work Assistants",
@@ -2904,6 +2912,8 @@ const dict = {
     signupSuccessVerify: "注册成功。如需验证邮箱，请到邮箱点击确认链接；否则可直接登录。",
     loginFailed: "登录失败",
     googleSignInFailed: "Google 登录失败",
+    offlineBanner: "目前离线，部分操作可能失败",
+    offlineBannerDismiss: "关闭",
   },
 } as const;
 
