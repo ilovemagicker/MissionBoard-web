@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { parseYm } from "@/lib/deep-links";
 import { AppShell } from "@/components/app-shell";
 import { ScheduleClient } from "@/components/schedule-client";
 import { createClient } from "@/lib/supabase/server";
@@ -25,7 +26,16 @@ const TEMPLATE_COLS =
 const TEMPLATE_COLS_LEGACY =
   "id,space_id,created_by,name,default_start_minutes,default_end_minutes,color,text_color,created_at,updated_at";
 
-export default async function SchedulePage() {
+export default async function SchedulePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ym?: string }>;
+}) {
+  const sp = await searchParams;
+  const ym = parseYm(sp.ym);
+  const initialYm = ym
+    ? `${ym.year}-${String(ym.monthIndex + 1).padStart(2, "0")}`
+    : undefined;
   const locale = await getLocale();
   const { user, configured } = await getSession();
   if (!configured || !user) return null;
@@ -220,6 +230,7 @@ export default async function SchedulePage() {
           swapApprovalMode={swapApprovalMode}
           members={members}
           profiles={profiles}
+          initialYm={initialYm}
         />
       )}
     </AppShell>

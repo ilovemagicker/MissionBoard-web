@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { pathWithSearch, sanitizeNextPath } from "@/lib/deep-links";
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -35,7 +36,11 @@ export async function updateSession(request: NextRequest) {
   if (path.startsWith("/app") && !user) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
-    loginUrl.searchParams.set("next", path);
+    loginUrl.search = "";
+    const next = sanitizeNextPath(
+      pathWithSearch(path, request.nextUrl.search)
+    );
+    loginUrl.searchParams.set("next", next);
     return NextResponse.redirect(loginUrl);
   }
 

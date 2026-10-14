@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useCallback, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   createShiftAction,
@@ -31,6 +31,7 @@ import {
   startOfMonth,
   toDateKey,
 } from "@/lib/calendar";
+import { formatYm, parseYm } from "@/lib/deep-links";
 import { dateLocale } from "@/lib/format";
 import { t, weekdaysMonFirst } from "@/lib/i18n";
 import {
@@ -199,6 +200,7 @@ export function ScheduleClient({
   swapApprovalMode,
   members,
   profiles,
+  initialYm,
 }: {
   locale: Locale;
   spaceId: string;
@@ -211,11 +213,37 @@ export function ScheduleClient({
   swapApprovalMode: ShiftSwapApprovalMode;
   members: Member[];
   profiles: Record<string, ProfileRow>;
+  /** Deep link `/app/schedule?ym=YYYY-MM` */
+  initialYm?: string;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [cursor, setCursor] = useState(() => startOfMonth(new Date()));
+  const [cursor, setCursor] = useState(() => {
+    const parsed = parseYm(initialYm);
+    if (parsed) return new Date(parsed.year, parsed.monthIndex, 1);
+    return startOfMonth(new Date());
+  });
   const [selectedKey, setSelectedKey] = useState(() => toDateKey(new Date()));
+
+  const syncYmToUrl = useCallback((d: Date) => {
+    if (typeof window === "undefined") return;
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set("ym", formatYm(d));
+      window.history.replaceState(null, "", url.pathname + url.search);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  function goMonth(delta: number) {
+    setCursor((c) => {
+      const next = addMonths(c, delta);
+      syncYmToUrl(next);
+      return next;
+    });
+  }
+
   const [form, setForm] = useState<FormState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -695,7 +723,11 @@ export function ScheduleClient({
     inMonth: boolean;
     date: Date;
   }) {
-    if (!cell.inMonth) setCursor(startOfMonth(cell.date));
+    if (!cell.inMonth) {
+                  const m = startOfMonth(cell.date);
+                  setCursor(m);
+                  syncYmToUrl(m);
+                }
     if (paintMode) {
       paintDay(cell.key);
       return;
@@ -989,7 +1021,7 @@ export function ScheduleClient({
         <div className="mb-4 flex items-center justify-between gap-2">
           <button
             type="button"
-            onClick={() => setCursor((c) => addMonths(c, -1))}
+            onClick={() => goMonth(-1)}
             className="rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
             aria-label={t(locale, "prevMonth")}
           >
@@ -998,7 +1030,7 @@ export function ScheduleClient({
           <h2 className="text-lg font-bold text-slate-900">{monthLabel}</h2>
           <button
             type="button"
-            onClick={() => setCursor((c) => addMonths(c, 1))}
+            onClick={() => goMonth(1)}
             className="rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
             aria-label={t(locale, "nextMonth")}
           >
