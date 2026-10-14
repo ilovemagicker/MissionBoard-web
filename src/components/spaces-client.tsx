@@ -12,6 +12,10 @@ import {
   transferSpaceOwnershipAction,
   unarchiveSpaceAction,
 } from "@/app/actions/spaces";
+import {
+  joinAsScheduleViewerAction,
+  lookupScheduleShareCodeAction,
+} from "@/app/actions/schedule-share";
 import { useEntitlements } from "@/components/entitlements-provider";
 import { LimitWallModal } from "@/components/monetization/limit-wall-modal";
 import {
@@ -45,6 +49,8 @@ export function SpacesClient({
   const [info, setInfo] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [invite, setInvite] = useState("");
+  const [familyCode, setFamilyCode] = useState("");
+  const [familyPreview, setFamilyPreview] = useState<string | null>(null);
   const [transferFor, setTransferFor] = useState<string | null>(null);
   const [transferTarget, setTransferTarget] = useState<string>("");
   const [wallKind, setWallKind] = useState<LimitKind | null>(null);
@@ -106,6 +112,50 @@ export function SpacesClient({
     });
   }
 
+  function onLookupFamily() {
+    setError(null);
+    setInfo(null);
+    setFamilyPreview(null);
+    startTransition(async () => {
+      const res = await lookupScheduleShareCodeAction(familyCode);
+      if (res.error) {
+        setError(res.error);
+        return;
+      }
+      if (res.spaceName) {
+        setFamilyPreview(res.spaceName);
+        setInfo(
+          t(locale, "scheduleRedeemPreview").replace("{name}", res.spaceName)
+        );
+      }
+    });
+  }
+
+  function onRedeemFamily(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setInfo(null);
+    startTransition(async () => {
+      const looked = await lookupScheduleShareCodeAction(familyCode);
+      const spaceName = looked.spaceName ?? familyPreview ?? "";
+      const res = await joinAsScheduleViewerAction(familyCode);
+      if (res.error) {
+        setError(res.error);
+        return;
+      }
+      setFamilyCode("");
+      setFamilyPreview(null);
+      setInfo(
+        t(locale, "scheduleRedeemSuccess").replace(
+          "{name}",
+          spaceName || res.spaceId || ""
+        )
+      );
+      router.refresh();
+      router.push("/app/schedule");
+    });
+  }
+
   function onAcceptRequest(request: JoinRequestRow & { space_name?: string }) {
     const members = membersBySpace[request.space_id] ?? [];
     const space = spaces.find((s) => s.id === request.space_id);
@@ -153,7 +203,7 @@ export function SpacesClient({
         </p>
       )}
 
-      <section className="grid gap-4 md:grid-cols-2">
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <form
           onSubmit={onCreate}
           className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200/80"
@@ -198,6 +248,53 @@ export function SpacesClient({
           >
             {t(locale, "submitJoin")}
           </button>
+        </form>
+
+        <form
+          onSubmit={onRedeemFamily}
+          className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-indigo-200/80"
+        >
+          <h2 className="text-sm font-semibold text-indigo-700">
+            {t(locale, "scheduleRedeemTitle")}
+          </h2>
+          <p className="mt-1 text-xs text-slate-500">
+            {t(locale, "scheduleRedeemHint")}
+          </p>
+          <input
+            value={familyCode}
+            onChange={(e) => {
+              setFamilyCode(e.target.value.toUpperCase());
+              setFamilyPreview(null);
+            }}
+            required
+            placeholder={t(locale, "scheduleRedeemPlaceholder")}
+            className="mt-3 h-10 w-full rounded-xl border border-indigo-100 px-3 font-mono text-sm uppercase tracking-wide"
+          />
+          {familyPreview ? (
+            <p className="mt-2 text-xs font-medium text-indigo-800">
+              {t(locale, "scheduleRedeemPreview").replace(
+                "{name}",
+                familyPreview
+              )}
+            </p>
+          ) : null}
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              disabled={pending || !familyCode.trim()}
+              onClick={onLookupFamily}
+              className="h-10 rounded-xl border border-indigo-200 bg-indigo-50 text-sm font-semibold text-indigo-800 disabled:opacity-60"
+            >
+              {t(locale, "scheduleRedeemLookup")}
+            </button>
+            <button
+              type="submit"
+              disabled={pending || !familyCode.trim()}
+              className="h-10 rounded-xl bg-indigo-600 text-sm font-semibold text-white disabled:opacity-60"
+            >
+              {t(locale, "scheduleRedeemJoin")}
+            </button>
+          </div>
         </form>
       </section>
 
