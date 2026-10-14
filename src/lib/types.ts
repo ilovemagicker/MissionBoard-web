@@ -32,6 +32,8 @@ export type MissionRow = {
   decision_requested_by?: string | null;
   decision_approved_at?: string | null;
   decision_approved_by?: string | null;
+  /** 031 — may be missing if migration not applied. */
+  recurrence_id?: string | null;
 };
 
 export type MissionStepRow = {
@@ -44,6 +46,8 @@ export type MissionStepRow = {
   deadline_date: string | null;
   created_at: string;
   completed_at: string | null;
+  /** 033 — null = top level; may be missing if migration not applied. */
+  parent_step_id?: string | null;
 };
 
 export type MissionCommentRow = {
@@ -180,3 +184,31 @@ export type ShiftSwapRequestRow = {
   /** 027: target agreed in admin_required mode; may be missing if 027 not applied. */
   target_accepted_at?: string | null;
 };
+
+/** 031: daily | weekly | monthly | interval */
+export type RecurrenceFrequency = "daily" | "weekly" | "monthly" | "interval";
+
+export type MissionRecurrenceRow = {
+  id: string;
+  space_id: string;
+  template_mission_id: string | null;
+  created_by: string;
+  frequency: RecurrenceFrequency;
+  interval_days: number | null;
+  /** ISO weekdays 1=Mon … 7=Sun */
+  weekdays: number[];
+  month_day: number | null;
+  time_minutes: number;
+  timezone: string;
+  start_on: string;
+  end_on: string | null;
+  max_count: number | null;
+  generated_count: number;
+  next_run_at: string | null;
+  last_run_at: string | null;
+  active: boolean;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type RecurrenceEndMode = "never" | "onDate" | "afterCount";

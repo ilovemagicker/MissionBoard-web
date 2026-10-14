@@ -13,6 +13,8 @@ import {
   declineStepClaimAction,
   deleteMissionAction,
   approveMissionDecisionAction,
+  indentStepAction,
+  outdentStepAction,
   requestMissionDecisionAction,
   returnMissionDecisionAction,
   toggleStepDoneAction,
@@ -22,13 +24,20 @@ import {
   updateMissionPriorityAction,
   updateMissionStatusAction,
 } from "@/app/actions/missions";
-import { roleLabel, statusLabel, t } from "@/lib/i18n";
+import { MissionRecurrencePanel } from "@/components/mission-recurrence-panel";
+import { roleLabel, statusLabel, t, tf } from "@/lib/i18n";
 import { formatDateTime } from "@/lib/format";
+import {
+  canIndentStep,
+  canOutdentStep,
+  flattenStepTree,
+} from "@/lib/step-tree";
 import type {
   Locale,
   MissionCommentRow,
   MissionPriority,
   MissionReaderRow,
+  MissionRecurrenceRow,
   MissionRow,
   MissionStatus,
   MissionStepRow,
@@ -51,6 +60,7 @@ export function MissionDetailClient({
   isWorking,
   userId,
   claimRequests,
+  recurrence,
 }: {
   locale: Locale;
   mission: MissionRow;
@@ -63,14 +73,17 @@ export function MissionDetailClient({
   isWorking: boolean;
   userId: string;
   claimRequests: StepClaimRequestRow[];
+  recurrence: MissionRecurrenceRow | null;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [stepTitle, setStepTitle] = useState("");
+  const [addUnderParentId, setAddUnderParentId] = useState<string | null>(null);
   const [commentBody, setCommentBody] = useState("");
   const [stepComments, setStepComments] = useState<Record<string, string>>({});
   const [panel, setPanel] = useState<PeoplePanel>(null);
+  const treeRows = flattenStepTree(steps);
 
   function run(fn: () => Promise<{ error?: string; ok?: boolean } | void>) {
     setError(null);
@@ -108,9 +121,13 @@ export function MissionDetailClient({
     const fd = new FormData();
     fd.set("mission_id", mission.id);
     fd.set("title", stepTitle);
+    if (addUnderParentId) fd.set("parent_step_id", addUnderParentId);
     run(async () => {
       const res = await addStepAction(fd);
-      if (!res.error) setStepTitle("");
+      if (!res.error) {
+        setStepTitle("");
+        setAddUnderParentId(null);
+      }
       return res;
     });
   }
@@ -167,6 +184,14 @@ export function MissionDetailClient({
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-2xl font-bold text-slate-900">{mission.title}</h1>
+              {mission.recurrence_id && (
+                <span
+                  title={t(locale, "recurrenceIconA11y")}
+                  className="rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700 ring-1 ring-indigo-200"
+                >
+                  ↻ {t(locale, "recurrenceTitle")}
+                </span>
+              )}
               {isArchived && (
                 <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700 ring-1 ring-amber-200">
                   {t(locale, "archived")}
@@ -373,26 +398,48 @@ export function MissionDetailClient({
         )}
       </section>
 
+      <MissionRecurrencePanel
+        locale={locale}
+        missionId={mission.id}
+        startDate={mission.start_date}
+        recurrence={recurrence}
+        isTemplate={
+          !recurrence ||
+          !mission.recurrence_id ||
+          recurrence.template_mission_id === mission.id
+        }
+        canEdit={canEditMeta}
+        isArchived={isArchived}
+      />
+
       <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200/80">
-        <h2 className="mb-4 text-sm font-semibold tracking-wide text-slate-500">
+        <h2 className="mb-2 text-sm font-semibold tracking-wide text-slate-500">
           {t(locale, "steps")}
         </h2>
+        <p className="mb-4 text-[11px] text-slate-400">
+          {t(locale, "nestedStepsHint")}
+        </p>
         <ul className="space-y-4">
-          {steps.map((step) => {
+          {treeRows.map(({ step, depth, childCount, childDoneCount }) => {
             const assigneeName = step.assignee_id
               ? profiles[step.assignee_id]?.display_name || step.assignee_id.slice(0, 8)
               : t(locale, "unassigned");
             const isMine = step.assignee_id === userId;
+            const hasChildren = childCount > 0;
+            const canIndent = canIndentStep(steps, step.id);
+            const canOutdent = canOutdentStep(steps, step.id);
             return (
               <li
                 key={step.id}
                 className="rounded-2xl border border-slate-100 bg-slate-50 p-3"
+                style={{ marginLeft: depth * 16 }}
               >
                 <div className="flex flex-wrap items-start gap-3">
                   <input
                     type="checkbox"
                     checked={step.is_done}
-                    disabled={pending}
+                    disabled={pending || hasChildren}
+                    title={hasChildren ? t(locale, "stepHasChildren") : undefined}
                     onChange={(e) =>
                       run(() =>
                         toggleStepDoneAction(step.id, mission.id, e.target.checked)
@@ -406,6 +453,7 @@ export function MissionDetailClient({
                         step.is_done ? "text-slate-400 line-through" : "text-slate-900"
                       }`}
                     >
+                      {depth > 0 ? "↳ " : ""}
                       {step.title}
                     </p>
                     <p className="mt-0.5 text-xs text-slate-500">
@@ -414,8 +462,49 @@ export function MissionDetailClient({
                       {step.completed_at
                         ? ` · ✓ ${formatDateTime(step.completed_at, locale)}`
                         : ""}
+                      {hasChildren
+                        ? ` · ${tf(locale, "stepChildrenProgress", {
+                            done: childDoneCount,
+                            total: childCount,
+                          })}`
+                        : ""}
                     </p>
                     <div className="mt-2 flex flex-wrap gap-2">
+                      {!isArchived && (
+                        <>
+                          <button
+                            type="button"
+                            disabled={pending || !canIndent}
+                            onClick={() =>
+                              run(() => indentStepAction(step.id, mission.id))
+                            }
+                            className="rounded-lg bg-white px-2 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 disabled:opacity-40"
+                          >
+                            {t(locale, "indentStep")}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={pending || !canOutdent}
+                            onClick={() =>
+                              run(() => outdentStepAction(step.id, mission.id))
+                            }
+                            className="rounded-lg bg-white px-2 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 disabled:opacity-40"
+                          >
+                            {t(locale, "outdentStep")}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={pending || depth >= 4}
+                            onClick={() => {
+                              setAddUnderParentId(step.id);
+                              setStepTitle("");
+                            }}
+                            className="rounded-lg bg-white px-2 py-1 text-xs font-semibold text-blue-700 ring-1 ring-blue-200 disabled:opacity-40"
+                          >
+                            {t(locale, "addSubStep")}
+                          </button>
+                        </>
+                      )}
                       {!step.assignee_id &&
                         (() => {
                           const claim = pendingByStep[step.id];
@@ -592,11 +681,26 @@ export function MissionDetailClient({
           })}
         </ul>
 
+        {addUnderParentId && (
+          <p className="mt-3 text-xs text-blue-700">
+            {t(locale, "addSubStep")}:{" "}
+            {steps.find((s) => s.id === addUnderParentId)?.title || "…"}
+            <button
+              type="button"
+              className="ml-2 underline"
+              onClick={() => setAddUnderParentId(null)}
+            >
+              {t(locale, "cancel")}
+            </button>
+          </p>
+        )}
         <form onSubmit={onAddStep} className="mt-4 flex gap-2">
           <input
             value={stepTitle}
             onChange={(e) => setStepTitle(e.target.value)}
-            placeholder={t(locale, "addStep")}
+            placeholder={
+              addUnderParentId ? t(locale, "addSubStep") : t(locale, "addStep")
+            }
             className="h-10 flex-1 rounded-xl border border-slate-200 px-3 text-sm"
             required
           />
@@ -605,7 +709,7 @@ export function MissionDetailClient({
             disabled={pending}
             className="rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white"
           >
-            {t(locale, "addStep")}
+            {addUnderParentId ? t(locale, "addSubStep") : t(locale, "addStep")}
           </button>
         </form>
       </section>

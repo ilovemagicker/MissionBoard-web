@@ -35,7 +35,7 @@ export default async function MissionsPage({
     let query = supabase
       .from("missions")
       .select(
-        "id,space_id,title,description,start_date,due_date,status,flag_icon,creator_id,created_at,updated_at,archived_at,priority,decision_maker_id,decision_requested_at,decision_requested_by,decision_approved_at,decision_approved_by"
+        "id,space_id,title,description,start_date,due_date,status,flag_icon,creator_id,created_at,updated_at,archived_at,priority,decision_maker_id,decision_requested_at,decision_requested_by,decision_approved_at,decision_approved_by,recurrence_id"
       )
       .eq("space_id", activeSpaceId)
       .order("updated_at", { ascending: false })
@@ -69,10 +69,18 @@ export default async function MissionsPage({
       const ids = missions.map((m) => m.id);
       const { data: steps } = await supabase
         .from("mission_steps")
-        .select("mission_id,is_done")
+        .select("id,mission_id,is_done,parent_step_id")
         .in("mission_id", ids);
+      const parentIds = new Set(
+        (steps ?? [])
+          .map((s) => s.parent_step_id as string | null)
+          .filter((x): x is string => !!x)
+      );
       for (const s of steps ?? []) {
         const mid = s.mission_id as string;
+        const sid = s.id as string;
+        // Count leaf steps only when nested (033)
+        if (parentIds.has(sid)) continue;
         if (!stepCounts[mid]) stepCounts[mid] = { done: 0, total: 0 };
         stepCounts[mid].total += 1;
         if (s.is_done) stepCounts[mid].done += 1;

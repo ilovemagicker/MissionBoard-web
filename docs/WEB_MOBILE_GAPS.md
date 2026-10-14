@@ -3,7 +3,7 @@
 產品名：**Work Assistants**／任務助理。Repo 仍為 `MissionBoard-web`。  
 後端：與 MissionBoard-iOS 同一 Supabase；canonical migrations 在 iOS repo，`web/supabase/migrations` 僅鏡像。
 
-更新日期：2026-10-14（真實 Pro＋任務優先度／決策人）
+更新日期：2026-10-14（週期任務＋巢狀步驟）
 
 ## 已上線（Web）
 
@@ -19,6 +19,8 @@
 - 排班 **整月批次產生**：選月份／範本／對象（admin 可多人）／輪替樣式（每天、平日、做四休四、做五休二）／同相位或錯開／略過或覆寫；寫入 `source=generated` + `generation_batch_id`；可復原上一批（localStorage 記 batch id）；對齊 iOS RotationGenerate 最小可用切片
 - 排班 **匯出／分享**：目前月份 → `.ics` 日曆下載、月班表 PNG（canvas）、列印預覽；可選本人／全成員／指定成員。鏡像 `015_schedule_share.sql`（家人 viewer 分享碼）；Web 匯出為純前端，不依賴 `schedule_share_codes`
 - Free／Pro UI：讀取 `user_entitlements`（`022`／`038` 鏡像）；設定頁顯示來源／到期；DEBUG localStorage 僅覆寫測試；checkout 仍為 App Store／Play stub
+- 任務 **週期／重複**：建立與詳情可設 daily／weekly／monthly／interval、產生時刻、結束條件；停止／恢復／移除；列表與詳情顯示 ↻。鏡像 `030`（欄位依賴）／`031`／`036`（步驟從最新清單複製；產生由 pg_cron）
+- 任務 **巢狀步驟**：`parent_step_id`；詳情樹狀縮排、降一層／升一層、新增子步驟；父步驟完成由子步驟決定；列表步驟進度只計 leaf。鏡像 `033`
 
 ## 排班相對 mobile 缺口（優先下一波）
 
@@ -34,7 +36,7 @@
 
 - 「我的」完整頁（個人檔、通知偏好、刪帳）— Web 有設定／方案 stub
 - Push（Web Push 後期；APNs／FCM 為 mobile）
-- 任務：~~優先級／決策~~ ✅（`029`）；開始提醒、週期任務、投票／公告、巢狀步驟（iOS `030`–`037`）仍缺
+- 任務：~~優先級／決策~~ ✅（`029`）；~~週期任務~~ ✅（`031`／`036`）；~~巢狀步驟~~ ✅（`033`）；開始提醒 UI（`030` 已鏡像，Web 編輯 UI 待做）、投票／公告（`032`／`034`）、步驟截止 push（`037`／`035`）仍缺
 - ~~真實 entitlements 讀 `user_entitlements`~~ ✅（checkout 仍 iOS／Play 優先；無 Stripe）
 - 多語：Web 僅 zh-Hant／en；mobile 另有 ja／ko／zh-Hans
 
@@ -45,7 +47,7 @@
 3. ~~Admin 代建班／編輯他人／油漆模式~~ ✅  
 4. ~~請假／換班~~ ✅  
 5. ~~整月批次產生／undo batch~~ ✅  
-6. ~~排班分享／匯出（`015`）~~ ✅（client export）；~~真實 Pro 讀取~~ ✅；~~任務優先度／決策人（`029`）~~ ✅；其餘任務進階（`030`–`037`）待做  
+6. ~~排班分享／匯出（`015`）~~ ✅（client export）；~~真實 Pro 讀取~~ ✅；~~任務優先度／決策人（`029`）~~ ✅；~~週期任務（`031`／`036`）＋巢狀步驟（`033`）~~ ✅；開始提醒 UI／投票／公告／步驟截止 push 待做  
 
 Auth redirect（Cloudflare／自訂網域）：`https://app.onyxlab.dev/auth/callback`（與 Vercel 網域並存於 Supabase Redirect URLs）。
 
