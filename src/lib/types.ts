@@ -45,9 +45,33 @@ export type StartReminderMinutes = 0 | 15 | 60 | 1440;
 
 export type UserNotificationPreferencesRow = {
   user_id: string;
+  mission_due_today?: boolean;
+  mission_due_soon?: boolean;
+  step_claimed?: boolean;
+  step_completed?: boolean;
+  step_assigned_to_me?: boolean;
+  new_comment?: boolean;
+  mission_created?: boolean;
+  mission_status_changed?: boolean;
+  join_request_pending?: boolean;
+  join_request_resolved?: boolean;
+  member_joined?: boolean;
+  member_kicked?: boolean;
+  shift_reminder_enabled?: boolean;
+  shift_reminder_minutes?: number;
+  shift_swap_pending?: boolean;
+  step_claim_approval_pending?: boolean;
+  locale?: string;
+  mission_decision?: boolean;
   mission_start_reminder?: boolean;
   mission_start_reminder_minutes?: number;
+  task_poll_announcement?: boolean;
+  space_announcement?: boolean;
+  /** 037 — morning-of when step deadline is today */
+  step_deadline_reminder?: boolean;
 };
+
+export type ShiftReminderMinutes = 15 | 30 | 60 | 120 | 360 | 720 | 1440;
 
 export type MissionStepRow = {
   id: string;

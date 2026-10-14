@@ -18,6 +18,7 @@ import {
   requestMissionDecisionAction,
   returnMissionDecisionAction,
   toggleStepDoneAction,
+  updateStepDeadlineAction,
   toggleWorkingAction,
   unarchiveMissionAction,
   updateMissionDecisionMakerAction,
@@ -534,7 +535,9 @@ export function MissionDetailClient({
                     </p>
                     <p className="mt-0.5 text-xs text-slate-500">
                       {assigneeName}
-                      {step.deadline_date ? ` · ${step.deadline_date}` : ""}
+                      {step.deadline_date
+                        ? ` · ${t(locale, "stepDeadline")}: ${step.deadline_date}`
+                        : ""}
                       {step.completed_at
                         ? ` · ✓ ${formatDateTime(step.completed_at, locale)}`
                         : ""}
@@ -545,6 +548,50 @@ export function MissionDetailClient({
                           })}`
                         : ""}
                     </p>
+                    {!isArchived && (
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                        <label className="flex items-center gap-1.5 font-medium text-slate-600">
+                          <span>{t(locale, "stepDeadline")}</span>
+                          <input
+                            type="date"
+                            value={step.deadline_date ?? ""}
+                            disabled={pending}
+                            onChange={(e) => {
+                              const v = e.target.value || null;
+                              run(() =>
+                                updateStepDeadlineAction(
+                                  step.id,
+                                  mission.id,
+                                  v
+                                )
+                              );
+                            }}
+                            className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-xs"
+                          />
+                        </label>
+                        {step.deadline_date && (
+                          <button
+                            type="button"
+                            disabled={pending}
+                            onClick={() =>
+                              run(() =>
+                                updateStepDeadlineAction(
+                                  step.id,
+                                  mission.id,
+                                  null
+                                )
+                              )
+                            }
+                            className="rounded-lg bg-white px-2 py-1 font-semibold text-slate-600 ring-1 ring-slate-200"
+                          >
+                            {t(locale, "clearStepDeadline")}
+                          </button>
+                        )}
+                        <span className="text-[11px] text-slate-400">
+                          {t(locale, "stepDeadlineReminderNote")}
+                        </span>
+                      </div>
+                    )}
                     <div className="mt-2 flex flex-wrap gap-2">
                       {!isArchived && (
                         <>

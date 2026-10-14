@@ -187,6 +187,29 @@ export async function markMissionReadAction(missionId: string) {
   }
 }
 
+export async function updateStepDeadlineAction(
+  stepId: string,
+  missionId: string,
+  deadlineDate: string | null
+) {
+  try {
+    const { supabase } = await requireAuthedClient();
+    const value =
+      deadlineDate && /^\d{4}-\d{2}-\d{2}$/.test(deadlineDate)
+        ? deadlineDate
+        : null;
+    const { error } = await supabase
+      .from("mission_steps")
+      .update({ deadline_date: value })
+      .eq("id", stepId);
+    if (error) throw error;
+    revalidatePath(`/app/missions/${missionId}`);
+    return { ok: true as const };
+  } catch (err) {
+    return { error: formatError(err) };
+  }
+}
+
 export async function toggleStepDoneAction(stepId: string, missionId: string, isDone: boolean) {
   try {
     const { supabase } = await requireAuthedClient();
