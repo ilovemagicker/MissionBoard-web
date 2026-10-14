@@ -67,18 +67,70 @@ export async function joinByInviteAction(formData: FormData) {
 
     const space = Array.isArray(lookedUp) ? lookedUp[0] : lookedUp;
     if (!space?.id) throw new Error("Invite code not found");
+    const spaceId = space.id as string;
+    const spaceName = space.name as string;
+
+    const { data: membership } = await supabase
+      .from("space_members")
+      .select("role")
+      .eq("space_id", spaceId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (membership) {
+      return {
+        ok: true as const,
+        alreadyMember: true as const,
+        spaceId,
+        spaceName,
+      };
+    }
+
+    const { data: pendingReq } = await supabase
+      .from("space_join_requests")
+      .select("id")
+      .eq("space_id", spaceId)
+      .eq("requester_id", user.id)
+      .eq("status", "pending")
+      .maybeSingle();
+    if (pendingReq) {
+      return {
+        ok: true as const,
+        alreadyPending: true as const,
+        spaceId,
+        spaceName,
+      };
+    }
 
     const { error } = await supabase.from("space_join_requests").insert({
-      space_id: space.id,
+      space_id: spaceId,
       requester_id: user.id,
       status: "pending",
     });
-    if (error) throw error;
+    if (error) {
+      const msg = formatError(error).toLowerCase();
+      const codeStr =
+        error && typeof error === "object" && "code" in error
+          ? String((error as { code?: string }).code)
+          : "";
+      if (
+        codeStr === "23505" ||
+        msg.includes("duplicate") ||
+        msg.includes("unique")
+      ) {
+        return {
+          ok: true as const,
+          alreadyPending: true as const,
+          spaceId,
+          spaceName,
+        };
+      }
+      throw error;
+    }
 
     revalidatePath("/app/spaces");
-    return { ok: true, spaceName: space.name as string };
+    return { ok: true as const, spaceId, spaceName };
   } catch (err) {
-    return { error: formatError(err) };
+    return { ok: false as const, error: formatError(err) };
   }
 }
 
