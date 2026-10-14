@@ -87,7 +87,7 @@
 | T2 | 新增步驟 | ✅ | 標題＋排序；可掛在父步驟下 |
 | T3 | 認領／取消認領 | ✅ | 認領＝申請；建立者同意後 assignee；本人可取消認領 |
 | T4 | 指派成員 | ✅ | 僅任務建立者或空間 owner/admin；RPC `assign_step` |
-| T5 | 步驟截止日 | ✅ | optional date |
+| T5 | 步驟截止日 | ✅ | optional date；詳情可設／清除；`037` 早上推播（mobile） |
 | T6 | 步驟留言 | ✅ | 依 step_id |
 | T7 | 顯示新增／完成時間 | ✅ | 相對時間 |
 | T8 | 巢狀步驟 | ✅ | `parent_step_id`；縮排／升層／降層／子步驟；最多 5 層；鏡像 `033` |
@@ -119,7 +119,19 @@
 | H6 | 油漆模式／多人編輯 | ✅ | 選範本／自訂時段 → 點空日畫班；admin 可選對象；完成／復原上一筆 |
 | H7 | 匯出日曆／分享圖 | ✅ | `.ics`＋月班表 PNG／列印；`015` 鏡像（家人分享碼）；Web 不需新表 |
 
-### 3.7 Activity（動態）
+### 3.7 Me／設定（我的）
+
+| ID | 功能 | MVP? | 完成標準 |
+|----|------|------|----------|
+| Me1 | 個人資料 | ✅ | `profiles.display_name`／`avatar_url`（URL） |
+| Me2 | 通知偏好 | ✅ | `user_notification_preferences` 全欄（含開始／步驟截止／投票／空間公告）；推播 delivery 仍 mobile |
+| Me3 | 方案與配額 | ✅ | 讀 `user_entitlements`；checkout 仍 App Store／Play |
+| Me4 | 登出／刪帳 | ✅ | `signOut`；Edge `delete-account`（與 iOS 同；擁有多人空間需先轉讓） |
+
+路由：`/app/settings`（導覽「我的」）。
+
+### 3.8 Activity（動態）
+
 
 
 | ID | 功能 | MVP? | 完成標準 |
@@ -134,12 +146,12 @@
 >
 > 步驟認領：執行 `007_step_claim_requests.sql`。成員不可直接設自己為 assignee；建立 claim request 後由 `missions.creator_id` 同意／拒絕。指派他人僅建立者或空間 admin/owner。
 
-### 3.8 設定／其它
+### 3.9 設定／其它（歷史）
 
 | ID | 功能 | MVP? | 完成標準 |
 |----|------|------|----------|
 | P1 | 語言切換 zh-Hant／en | ✅ | 持久化 preference |
-| P2 | 通知偏好 | ⏳ | 設定頁可改「任務開始提醒」開關＋預設提前期（`030`）；推播仍 APNs／FCM；Web Push 後期 |
+| P2 | 通知偏好 | ✅ | 「我的」頁完整偏好（含開始／步驟截止／投票／空間公告）；推播仍 APNs／FCM；Web Push 後期 |
 | P3 | 新手引導 | ⏳ | 可選、可跳過 |
 | P4 | 離線提示 | ⏳ | 請求失敗／無網路 banner |
 
@@ -232,6 +244,6 @@
 
 ## 9. 下一步
 
-**Wave 1 / Wave 2 已完成；Wave 3 已補轉讓擁有者 + Activity/Realtime + 真實 Pro 讀取 + 任務優先度／決策人 + 週期／巢狀步驟 + 投票／公告 + 開始提醒 UI（`030`；推播仍 mobile）。** 之後可選步驟截止 push UI、deep link、Web Push。  
+**Wave 1 / Wave 2 已完成；Wave 3 已補轉讓擁有者 + Activity/Realtime + 真實 Pro 讀取 + 任務優先度／決策人 + 週期／巢狀步驟 + 投票／公告 + 開始提醒 UI（`030`）+「我的」頁＋步驟截止提醒 UI（`037`／`035`；推播仍 mobile）。** 之後可選 deep link、Web Push。  
 **必須：** 在 Supabase SQL Editor 執行 `006_activity_events.sql` 與 `007_step_claim_requests.sql`（見 web `supabase/migrations/` 或 iOS 同名檔），並在 Dashboard → Database → Publications / Realtime 確認 `activity_events`（與可選 `missions`）已加入。  
 UI 在功能可用後再統一視覺（可對齊 iOS 的藍＋卡片語言）。

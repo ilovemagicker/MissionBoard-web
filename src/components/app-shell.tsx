@@ -58,7 +58,7 @@ export function AppShell({
                     : "text-slate-600 hover:bg-slate-100"
                 }`}
               >
-                {t(locale, "monPlanAndQuota")}
+                {t(locale, "meTitle")}
               </Link>
               <LocaleToggle locale={locale} />
               <LogoutButton label={t(locale, "logout")} />
