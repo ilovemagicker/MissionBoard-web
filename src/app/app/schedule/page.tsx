@@ -32,6 +32,8 @@ export default async function SchedulePage() {
 
   const spaces = await getSpacesForUser(user.id);
   const activeSpaceId = await getActiveSpaceId(spaces);
+  const activeSpaceName =
+    spaces.find((s) => s.id === activeSpaceId)?.name ?? "";
   const supabase = await createClient();
 
   let shifts: ShiftRow[] = [];
@@ -209,6 +211,7 @@ export default async function SchedulePage() {
         <ScheduleClient
           locale={locale}
           spaceId={activeSpaceId}
+          spaceName={activeSpaceName}
           currentUserId={user.id}
           shifts={shifts}
           templates={templates}
