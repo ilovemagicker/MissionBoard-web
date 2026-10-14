@@ -19,6 +19,42 @@ function revalidateSchedule() {
   revalidatePath("/app/schedule");
 }
 
+/** Resolve assignee: self always; other members only if caller is space admin/owner. */
+async function resolveShiftUserId(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  spaceId: string,
+  callerId: string,
+  requestedUserId: string | undefined
+): Promise<string> {
+  const target = requestedUserId?.trim() || callerId;
+  if (target === callerId) return callerId;
+
+  const { data: me, error: meErr } = await supabase
+    .from("space_members")
+    .select("role")
+    .eq("space_id", spaceId)
+    .eq("user_id", callerId)
+    .maybeSingle();
+  if (meErr) throw meErr;
+  const role = me?.role as string | undefined;
+  if (role !== "owner" && role !== "admin") {
+    throw new Error("Only space admin/owner can create shifts for others");
+  }
+
+  const { data: targetRow, error: targetErr } = await supabase
+    .from("space_members")
+    .select("user_id,role")
+    .eq("space_id", spaceId)
+    .eq("user_id", target)
+    .maybeSingle();
+  if (targetErr) throw targetErr;
+  if (!targetRow) throw new Error("Target is not a space member");
+  if ((targetRow.role as string) === "viewer") {
+    throw new Error("Cannot assign shifts to viewer members");
+  }
+  return target;
+}
+
 export async function createShiftAction(input: {
   spaceId: string;
   startAt: string;
@@ -27,6 +63,8 @@ export async function createShiftAction(input: {
   note?: string;
   color: string;
   textColor: string;
+  /** Assignee; defaults to current user. Admin/owner may set another member. */
+  userId?: string;
 }) {
   try {
     const { supabase, user } = await requireAuthedClient();
@@ -37,11 +75,18 @@ export async function createShiftAction(input: {
       throw new Error("End must be after start");
     }
 
+    const assigneeId = await resolveShiftUserId(
+      supabase,
+      input.spaceId,
+      user.id,
+      input.userId
+    );
+
     const { data, error } = await supabase
       .from("shifts")
       .insert({
         space_id: input.spaceId,
-        user_id: user.id,
+        user_id: assigneeId,
         start_at: input.startAt,
         end_at: input.endAt,
         title: input.title?.trim() || null,
