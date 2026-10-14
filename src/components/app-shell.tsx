@@ -3,6 +3,7 @@ import { EntitlementsProvider } from "@/components/entitlements-provider";
 import { HeaderPlanBadge } from "@/components/monetization/header-plan-badge";
 import { LocaleToggle } from "@/components/locale-toggle";
 import { LogoutButton } from "@/components/logout-button";
+import { OnboardingTour } from "@/components/onboarding-tour";
 import { SpaceSwitcher } from "@/components/space-switcher";
 import { t, type MessageKey } from "@/lib/i18n";
 import type { Locale, SpaceWithRole } from "@/lib/types";
@@ -37,6 +38,7 @@ export function AppShell({
 
   return (
     <EntitlementsProvider>
+      <OnboardingTour locale={locale} />
       <div className="mx-auto min-h-screen max-w-5xl px-4 py-6 sm:px-6">
         <header className="mb-6 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">

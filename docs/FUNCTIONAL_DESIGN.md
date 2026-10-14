@@ -152,7 +152,7 @@
 |----|------|------|----------|
 | P1 | 語言切換 zh-Hant／en | ✅ | 持久化 preference |
 | P2 | 通知偏好 | ✅ | 「我的」頁完整偏好（含開始／步驟截止／投票／空間公告）；推播仍 APNs／FCM；Web Push 後期 |
-| P3 | 新手引導 | ⏳ | 可選、可跳過 |
+| P3 | 新手引導 | ✅ | `OnboardingTour`：登入後 App shell 首次顯示；4 步（空間／任務／排班／我的）；Skip／Done／Esc／點背景皆寫入 `localStorage` `missionBoard.onboarding.v1.dismissed`；有 `?invite=`／`?family=` 時不顯示 |
 | P4 | 離線提示 | ✅ | `OfflineBanner`：`navigator.onLine`／`online`／`offline`；可關閉；恢復連線自動清除（root layout） |
 
 ---
