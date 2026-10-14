@@ -23,6 +23,7 @@ import {
 } from "@/components/schedule-swap-panel";
 import { ScheduleGeneratePanel } from "@/components/schedule-generate-panel";
 import { ScheduleExportPanel } from "@/components/schedule-export-panel";
+import { ScheduleSharePanel } from "@/components/schedule-share-panel";
 import {
   addMonths,
   daysInMonth,
@@ -134,6 +135,15 @@ function isAdminLike(members: Member[], userId: string) {
   return role === "owner" || role === "admin";
 }
 
+function memberRole(members: Member[], userId: string) {
+  return members.find((m) => m.user_id === userId)?.role ?? null;
+}
+
+function isSpaceEditor(members: Member[], userId: string) {
+  const role = memberRole(members, userId);
+  return role === "owner" || role === "admin" || role === "member";
+}
+
 function editableMembers(members: Member[]) {
   return members.filter((m) => m.role !== "viewer");
 }
@@ -143,6 +153,7 @@ function canEditShift(
   currentUserId: string,
   members: Member[]
 ) {
+  if (!isSpaceEditor(members, currentUserId)) return false;
   if (shift.user_id === currentUserId) return true;
   return isAdminLike(members, currentUserId);
 }
@@ -152,6 +163,7 @@ function canEditTemplate(
   currentUserId: string,
   members: Member[]
 ) {
+  if (!isSpaceEditor(members, currentUserId)) return false;
   if (template.created_by === currentUserId) return true;
   if (template.owner_user_id === currentUserId) return true;
   return isAdminLike(members, currentUserId);
@@ -220,6 +232,8 @@ export function ScheduleClient({
   >(null);
 
   const isAdmin = isAdminLike(members, currentUserId);
+  const isEditor = isSpaceEditor(members, currentUserId);
+  const isViewer = memberRole(members, currentUserId) === "viewer";
   const assignableMembers = useMemo(
     () => editableMembers(members),
     [members]
@@ -239,6 +253,7 @@ export function ScheduleClient({
   );
   const [showGenerate, setShowGenerate] = useState(false);
   const [showExport, setShowExport] = useState(false);
+  const [showShare, setShowShare] = useState(false);
 
   const weekdays = locale === "en" ? WEEKDAYS_EN : WEEKDAYS_ZH;
 
@@ -704,12 +719,17 @@ export function ScheduleClient({
 
   return (
     <div className="space-y-4">
+      {isViewer ? (
+        <p className="rounded-2xl bg-indigo-50 px-4 py-3 text-sm font-medium text-indigo-900 ring-1 ring-indigo-200">
+          {t(locale, "scheduleViewerBanner")}
+        </p>
+      ) : null}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-xl font-bold text-slate-900">
           {t(locale, "scheduleTitle")}
         </h1>
         <div className="flex flex-wrap gap-2">
-          {!paintMode ? (
+          {isEditor && !paintMode ? (
             <button
               type="button"
               onClick={enterPaintMode}
@@ -718,7 +738,7 @@ export function ScheduleClient({
               {t(locale, "schedulePaintMode")}
             </button>
           ) : null}
-          {!paintMode ? (
+          {isEditor && !paintMode ? (
             <button
               type="button"
               onClick={() => {
@@ -742,42 +762,60 @@ export function ScheduleClient({
               {t(locale, "scheduleExport")}
             </button>
           ) : null}
-          <button
-            type="button"
-            onClick={() => {
-              setShowLeave(true);
-              setError(null);
-            }}
-            className="inline-flex h-10 items-center rounded-xl bg-orange-50 px-4 text-sm font-semibold text-orange-800 ring-1 ring-orange-200 hover:bg-orange-100"
-          >
-            {t(locale, "scheduleLeaveTitle")}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setShowSwapInbox(true);
-              setError(null);
-            }}
-            className="relative inline-flex h-10 items-center rounded-xl bg-white px-4 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50"
-          >
-            {t(locale, "scheduleSwapTitle")}
-            {pendingSwapCount > 0 ? (
-              <span className="ml-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-orange-500 px-1.5 text-[10px] font-bold text-white">
-                {pendingSwapCount}
-              </span>
-            ) : null}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setShowTemplates(true);
-              setError(null);
-            }}
-            className="inline-flex h-10 items-center rounded-xl bg-white px-4 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50"
-          >
-            {t(locale, "scheduleTemplates")}
-          </button>
-          {!paintMode ? (
+          {isAdmin && !paintMode ? (
+            <button
+              type="button"
+              onClick={() => {
+                setShowShare(true);
+                setError(null);
+              }}
+              className="inline-flex h-10 items-center rounded-xl bg-indigo-50 px-4 text-sm font-semibold text-indigo-800 ring-1 ring-indigo-200 hover:bg-indigo-100"
+            >
+              {t(locale, "scheduleShare")}
+            </button>
+          ) : null}
+          {isEditor ? (
+            <button
+              type="button"
+              onClick={() => {
+                setShowLeave(true);
+                setError(null);
+              }}
+              className="inline-flex h-10 items-center rounded-xl bg-orange-50 px-4 text-sm font-semibold text-orange-800 ring-1 ring-orange-200 hover:bg-orange-100"
+            >
+              {t(locale, "scheduleLeaveTitle")}
+            </button>
+          ) : null}
+          {isEditor ? (
+            <button
+              type="button"
+              onClick={() => {
+                setShowSwapInbox(true);
+                setError(null);
+              }}
+              className="relative inline-flex h-10 items-center rounded-xl bg-white px-4 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50"
+            >
+              {t(locale, "scheduleSwapTitle")}
+              {pendingSwapCount > 0 ? (
+                <span className="ml-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-orange-500 px-1.5 text-[10px] font-bold text-white">
+                  {pendingSwapCount}
+                </span>
+              ) : null}
+            </button>
+          ) : null}
+          {isEditor ? (
+            <button
+              type="button"
+              onClick={() => {
+                setShowTemplates(true);
+                setError(null);
+              }}
+              className="inline-flex h-10 items-center rounded-xl bg-white px-4 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50"
+            >
+              {t(locale, "scheduleTemplates")}
+            </button>
+          ) : null}
+          {isEditor && !paintMode ? (
             <button
               type="button"
               onClick={() => openCreate()}
@@ -1145,15 +1183,17 @@ export function ScheduleClient({
                                   </button>
                                 </>
                               ) : null}
-                              <button
-                                type="button"
-                                className="underline opacity-95"
-                                onClick={() => setSwapRequestShift(s)}
-                              >
-                                {s.user_id === currentUserId
-                                  ? t(locale, "scheduleSwapAction")
-                                  : t(locale, "scheduleSwapOfferAction")}
-                              </button>
+                              {isEditor ? (
+                                <button
+                                  type="button"
+                                  className="underline opacity-95"
+                                  onClick={() => setSwapRequestShift(s)}
+                                >
+                                  {s.user_id === currentUserId
+                                    ? t(locale, "scheduleSwapAction")
+                                    : t(locale, "scheduleSwapOfferAction")}
+                                </button>
+                              ) : null}
                             </span>
                           </div>
                         );
@@ -1224,13 +1264,15 @@ export function ScheduleClient({
               <h3 className="text-xs font-bold uppercase tracking-wide text-orange-700">
                 {t(locale, "scheduleLeaveOnDay")}
               </h3>
-              <button
-                type="button"
-                onClick={() => setShowLeave(true)}
-                className="text-xs font-semibold text-orange-700 hover:underline"
-              >
-                {t(locale, "scheduleLeaveTitle")}
-              </button>
+              {isEditor ? (
+                <button
+                  type="button"
+                  onClick={() => setShowLeave(true)}
+                  className="text-xs font-semibold text-orange-700 hover:underline"
+                >
+                  {t(locale, "scheduleLeaveTitle")}
+                </button>
+              ) : null}
             </div>
             {dayLeave.length === 0 ? (
               <p className="text-sm text-slate-500">
@@ -1795,6 +1837,15 @@ export function ScheduleClient({
           shifts={shifts}
           cursorMonth={cursor}
           onClose={() => setShowExport(false)}
+        />
+      ) : null}
+
+      {showShare && isAdmin ? (
+        <ScheduleSharePanel
+          locale={locale}
+          spaceId={spaceId}
+          spaceName={spaceName}
+          onClose={() => setShowShare(false)}
         />
       ) : null}
 
