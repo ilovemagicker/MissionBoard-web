@@ -274,7 +274,7 @@ export function MissionDetailClient({
                   type="button"
                   disabled={pending}
                   onClick={() => setShowFlagPicker((v) => !v)}
-                  className="text-xs font-semibold text-blue-600 hover:text-blue-500"
+                  className="text-xs font-semibold text-brand hover:text-brand/80"
                 >
                   {showFlagPicker
                     ? t(locale, "flagIconCollapse")
@@ -660,7 +660,7 @@ export function MissionDetailClient({
                               setAddUnderParentId(step.id);
                               setStepTitle("");
                             }}
-                            className="rounded-lg bg-white px-2 py-1 text-xs font-semibold text-blue-700 ring-1 ring-blue-200 disabled:opacity-40"
+                            className="rounded-lg bg-white px-2 py-1 text-xs font-semibold text-brand ring-1 ring-brand/30 disabled:opacity-40"
                           >
                             {t(locale, "addSubStep")}
                           </button>
@@ -766,7 +766,7 @@ export function MissionDetailClient({
                                 )
                               )
                             }
-                            className="rounded-lg bg-blue-600 px-2 py-1 font-semibold text-white"
+                            className="rounded-lg bg-brand px-2 py-1 font-semibold text-white"
                           >
                             {t(locale, "acceptClaim")}
                           </button>
@@ -830,7 +830,7 @@ export function MissionDetailClient({
                       />
                       <button
                         type="submit"
-                        className="rounded-lg bg-blue-600 px-2 text-xs font-semibold text-white"
+                        className="rounded-lg bg-brand px-2 text-xs font-semibold text-white"
                       >
                         {t(locale, "addComment")}
                       </button>
@@ -843,7 +843,7 @@ export function MissionDetailClient({
         </ul>
 
         {addUnderParentId && (
-          <p className="mt-3 text-xs text-blue-700">
+          <p className="mt-3 text-xs text-brand">
             {t(locale, "addSubStep")}:{" "}
             {steps.find((s) => s.id === addUnderParentId)?.title || "…"}
             <button
@@ -868,7 +868,7 @@ export function MissionDetailClient({
           <button
             type="submit"
             disabled={pending}
-            className="rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white"
+            className="rounded-xl bg-brand px-4 text-sm font-semibold text-white"
           >
             {addUnderParentId ? t(locale, "addSubStep") : t(locale, "addStep")}
           </button>
@@ -906,7 +906,7 @@ export function MissionDetailClient({
           <button
             type="submit"
             disabled={pending}
-            className="rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white"
+            className="rounded-xl bg-brand px-4 text-sm font-semibold text-white"
           >
             {t(locale, "addComment")}
           </button>

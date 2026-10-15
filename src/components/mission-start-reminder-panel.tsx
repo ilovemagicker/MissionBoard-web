@@ -146,7 +146,7 @@ export function MissionStartReminderPanel({
           type="button"
           disabled={pending}
           onClick={save}
-          className="mt-4 h-10 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-50"
+          className="mt-4 h-10 rounded-xl bg-brand px-4 text-sm font-semibold text-white hover:bg-brand/90 disabled:opacity-50"
         >
           {pending ? t(locale, "loading") : t(locale, "save")}
         </button>

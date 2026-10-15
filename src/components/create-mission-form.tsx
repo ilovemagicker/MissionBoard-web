@@ -83,7 +83,7 @@ export function CreateMissionForm({
         <input
           name="title"
           required
-          className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-blue-500"
+          className="h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand/30"
         />
       </label>
       <label className="block text-sm">
@@ -93,7 +93,7 @@ export function CreateMissionForm({
         <textarea
           name="description"
           rows={4}
-          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-500"
+          className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand/30"
         />
       </label>
       <FlagIconPicker
@@ -259,7 +259,7 @@ export function CreateMissionForm({
                       onClick={() => toggleWeekday(w.iso)}
                       className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
                         weekdays.includes(w.iso)
-                          ? "bg-blue-600 text-white"
+                          ? "bg-brand text-white"
                           : "bg-white text-slate-600 ring-1 ring-slate-200"
                       }`}
                     >
@@ -356,7 +356,7 @@ export function CreateMissionForm({
       <button
         type="submit"
         disabled={pending || (repeat && frequency === "weekly" && weekdays.length === 0)}
-        className="h-11 w-full rounded-xl bg-blue-600 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-50"
+        className="h-11 w-full rounded-xl bg-brand text-sm font-semibold text-white hover:bg-brand/90 disabled:opacity-50"
       >
         {pending ? t(locale, "loading") : t(locale, "create")}
       </button>
