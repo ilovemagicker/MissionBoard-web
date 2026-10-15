@@ -20,7 +20,7 @@ export function SpaceSwitcher({
     <label className="flex items-center gap-2 text-sm">
       <span className="hidden text-slate-500 sm:inline">{label}</span>
       <select
-        className="max-w-[12rem] rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-800 outline-none focus:border-blue-500"
+        className="max-w-[14rem] rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-medium text-slate-800 outline-none focus:border-brand focus:ring-1 focus:ring-brand/30"
         value={activeSpaceId ?? spaces[0].id}
         onChange={(e) => setActiveSpaceAction(e.target.value)}
       >

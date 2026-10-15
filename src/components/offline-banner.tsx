@@ -36,7 +36,7 @@ export function OfflineBanner({ locale }: { locale: Locale }) {
       aria-live="polite"
       className="sticky top-0 z-50 border-b border-amber-200/90 bg-amber-50 px-4 py-2.5 text-sm text-amber-950 shadow-sm"
     >
-      <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
+      <div className="mx-auto flex w-full max-w-[1440px] items-center justify-between gap-3">
         <p className="font-medium leading-snug">{t(locale, "offlineBanner")}</p>
         <button
           type="button"

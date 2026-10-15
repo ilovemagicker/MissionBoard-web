@@ -848,7 +848,7 @@ export function ScheduleClient({
             <button
               type="button"
               onClick={() => openCreate()}
-              className="inline-flex h-10 items-center rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"
+              className="inline-flex h-10 items-center rounded-xl bg-brand px-4 text-sm font-semibold text-white hover:bg-brand/90"
             >
               {t(locale, "scheduleAdd")}
             </button>
@@ -1060,13 +1060,13 @@ export function ScheduleClient({
                 onClick={() => onCellClick(cell)}
                 className={`flex min-h-[3.25rem] flex-col items-center rounded-xl px-1 py-1.5 text-sm transition ${
                   selected && !paintMode
-                    ? "bg-blue-600 text-white"
+                    ? "bg-brand text-white"
                     : paintMode && !targetOccupied && cell.inMonth
                       ? "bg-violet-50 text-violet-900 ring-1 ring-violet-200 hover:bg-violet-100"
                       : cell.inMonth
                         ? "text-slate-900 hover:bg-slate-50"
                         : "text-slate-300 hover:bg-slate-50"
-                } ${cell.isToday && !selected ? "ring-1 ring-blue-300" : ""}`}
+                } ${cell.isToday && !selected ? "ring-1 ring-brand/40" : ""}`}
               >
                 <span className="font-medium">{cell.day}</span>
                 <span className="mt-1 flex flex-wrap items-center justify-center gap-0.5">
@@ -1075,7 +1075,7 @@ export function ScheduleClient({
                       className={`rounded-full px-1.5 text-[10px] font-bold leading-4 ${
                         selected && !paintMode
                           ? "bg-white/20 text-white"
-                          : "bg-blue-50 text-blue-700"
+                          : "bg-brand/10 text-brand"
                       }`}
                     >
                       {cell.count}
@@ -1118,7 +1118,7 @@ export function ScheduleClient({
               <button
                 type="button"
                 onClick={() => openCreate()}
-                className="text-sm font-semibold text-blue-600 hover:underline"
+                className="text-sm font-semibold text-brand hover:underline"
               >
                 {t(locale, "scheduleAdd")}
               </button>
@@ -1149,7 +1149,7 @@ export function ScheduleClient({
                   <button
                     type="button"
                     onClick={() => openCreate()}
-                    className="inline-flex h-9 items-center rounded-xl bg-blue-600 px-3 text-sm font-semibold text-white"
+                    className="inline-flex h-9 items-center rounded-xl bg-brand px-3 text-sm font-semibold text-white"
                   >
                     {t(locale, "scheduleEmptyCta")}
                   </button>
@@ -1232,7 +1232,7 @@ export function ScheduleClient({
                       <button
                         type="button"
                         onClick={() => openCreate(g.userId)}
-                        className="text-xs font-semibold text-blue-600 hover:underline"
+                        className="text-xs font-semibold text-brand hover:underline"
                       >
                         {t(locale, "scheduleAdd")}
                       </button>
@@ -1262,7 +1262,7 @@ export function ScheduleClient({
                       <button
                         type="button"
                         onClick={() => openCreate(m.user_id)}
-                        className="rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-600 hover:bg-blue-50 hover:text-blue-700"
+                        className="rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-600 hover:bg-brand/10 hover:text-brand"
                         title={t(locale, "scheduleAdd")}
                       >
                         {memberLabel(
@@ -1462,7 +1462,7 @@ export function ScheduleClient({
                 type="button"
                 onClick={submitForm}
                 disabled={pending}
-                className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+                className="rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand/90 disabled:opacity-60"
               >
                 {t(locale, "save")}
               </button>
@@ -1562,7 +1562,7 @@ export function ScheduleClient({
                         <div className="flex shrink-0 flex-col gap-1 text-xs font-semibold">
                           <button
                             type="button"
-                            className="text-blue-600 hover:underline"
+                            className="text-brand hover:underline"
                             onClick={() => {
                               setShowTemplates(false);
                               applyTemplate(tmpl.id);
@@ -1602,7 +1602,7 @@ export function ScheduleClient({
               <button
                 type="button"
                 onClick={openTemplateCreate}
-                className="inline-flex h-10 w-full items-center justify-center rounded-xl bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700"
+                className="inline-flex h-10 w-full items-center justify-center rounded-xl bg-brand text-sm font-semibold text-white hover:bg-brand/90"
               >
                 {t(locale, "scheduleTemplateAdd")}
               </button>
@@ -1663,7 +1663,7 @@ export function ScheduleClient({
                       setShowTemplates(true);
                       openTemplateCreate();
                     }}
-                    className="mt-3 text-sm font-semibold text-blue-600 hover:underline"
+                    className="mt-3 text-sm font-semibold text-brand hover:underline"
                   >
                     {t(locale, "scheduleTemplateAdd")}
                   </button>
@@ -1697,7 +1697,7 @@ export function ScheduleClient({
                             {formatMinutesLabel(tmpl.default_end_minutes)}
                           </span>
                         </span>
-                        <span className="text-xs font-semibold text-blue-600">
+                        <span className="text-xs font-semibold text-brand">
                           {t(locale, "scheduleApplyToSelectedDay")}
                         </span>
                       </button>
@@ -1804,7 +1804,7 @@ export function ScheduleClient({
                 type="button"
                 onClick={submitTemplateForm}
                 disabled={pending || !templateForm.name.trim()}
-                className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+                className="rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand/90 disabled:opacity-60"
               >
                 {t(locale, "save")}
               </button>

@@ -1,11 +1,26 @@
 @import "tailwindcss";
 
+@theme {
+  --color-brand: var(--brand);
+  --color-brand-foreground: #ffffff;
+  --color-pro: #d97706;
+  --color-pro-dark: #fbbf24;
+}
+
 :root {
   --background: #f4f6fb;
   --foreground: #0f172a;
   --card: #ffffff;
-  --accent: #2563eb;
+  --brand: #3b5bdb;
+  --accent: #3b5bdb;
   --muted: #64748b;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --brand: #748ffc;
+    --accent: #748ffc;
+  }
 }
 
 body {

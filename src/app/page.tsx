@@ -3,8 +3,8 @@ import Link from "next/link";
 export default function HomePage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col justify-center px-6 py-16">
-      <div className="rounded-3xl bg-white p-10 shadow-sm ring-1 ring-slate-200/80">
-        <p className="text-sm font-semibold tracking-wide text-blue-600">
+      <div className="rounded-lg bg-white p-10 shadow-sm ring-1 ring-slate-200/80">
+        <p className="text-sm font-semibold tracking-wide text-brand">
           Work Assistants
         </p>
         <h1 className="mt-3 text-4xl font-bold tracking-tight text-slate-900">
@@ -17,7 +17,7 @@ export default function HomePage() {
         <div className="mt-8 flex flex-wrap gap-3">
           <Link
             href="/login"
-            className="inline-flex h-12 items-center justify-center rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white hover:bg-blue-500"
+            className="inline-flex h-12 items-center justify-center rounded-md bg-brand px-5 text-sm font-semibold text-white hover:bg-brand/90"
           >
             登入 / 註冊
           </Link>

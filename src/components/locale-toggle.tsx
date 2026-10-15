@@ -11,7 +11,7 @@ export function LocaleToggle({ locale }: { locale: Locale }) {
       <select
         value={locale}
         onChange={(e) => setLocaleAction(e.target.value)}
-        className="rounded-lg border border-slate-200 bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-800 shadow-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+        className="rounded-lg border border-slate-200 bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-800 shadow-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
         aria-label="Language"
       >
         {SUPPORTED_LOCALES.map((code) => (
