@@ -166,11 +166,17 @@ export function MissionsListClient({
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder={t(locale, "search")}
-          className="h-10 min-w-[12rem] flex-1 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-500"
+          className="h-9 min-w-[12rem] flex-1 rounded-md border border-slate-200 bg-white px-3 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand/30"
         />
         <Link
+          href="/app/missions/calendar"
+          className="inline-flex h-9 items-center rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+        >
+          {t(locale, "calendar")}
+        </Link>
+        <Link
           href="/app/missions/new"
-          className="inline-flex h-10 items-center rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-500"
+          className="inline-flex h-9 items-center rounded-md bg-brand px-4 text-sm font-semibold text-white hover:bg-brand/90"
         >
           {t(locale, "createMission")}
         </Link>
@@ -184,7 +190,7 @@ export function MissionsListClient({
             onClick={() => setFilter(c.id)}
             className={`rounded-full px-3 py-1 text-xs font-semibold ${
               filter === c.id
-                ? "bg-blue-600 text-white"
+                ? "bg-brand text-white"
                 : "bg-white text-slate-600 ring-1 ring-slate-200"
             }`}
           >
@@ -238,7 +244,7 @@ export function MissionsListClient({
               <li key={m.id}>
                 <Link
                   href={`/app/missions/${m.id}`}
-                  className="flex items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 shadow-sm ring-1 ring-slate-200/80 hover:ring-blue-200"
+                  className="flex items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 shadow-sm ring-1 ring-slate-200/80 hover:ring-brand/30"
                 >
                   <div className="flex min-w-0 items-start gap-3">
                     <MissionFlagIconView flagIcon={m.flag_icon} size={32} />

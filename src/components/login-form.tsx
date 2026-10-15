@@ -115,9 +115,9 @@ export function LoginForm({
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-12">
-      <div className="rounded-3xl bg-white p-8 shadow-sm ring-1 ring-slate-200/80">
+      <div className="rounded-lg bg-white p-8 shadow-sm ring-1 ring-slate-200/80">
         <div className="flex items-center justify-between gap-3">
-          <Link href="/" className="text-sm font-medium text-blue-600">
+          <Link href="/" className="text-sm font-medium text-brand">
             ← {t(locale, "appName")}
           </Link>
           <LocaleToggle locale={locale} />
@@ -139,7 +139,7 @@ export function LoginForm({
             <div className="flex gap-2">
               <Link
                 href={safeNext}
-                className="font-semibold text-blue-600"
+                className="font-semibold text-brand"
               >
                 {t(locale, "goToApp")}
               </Link>
@@ -214,14 +214,14 @@ export function LoginForm({
         <form onSubmit={onSubmit} className="mt-6 space-y-3">
           {mode === "signup" && (
             <input
-              className="h-12 w-full rounded-xl border border-slate-200 px-4 text-sm outline-none focus:border-blue-500"
+              className="h-12 w-full rounded-xl border border-slate-200 px-4 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand/30"
               placeholder={t(locale, "displayName")}
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
             />
           )}
           <input
-            className="h-12 w-full rounded-xl border border-slate-200 px-4 text-sm outline-none focus:border-blue-500"
+            className="h-12 w-full rounded-xl border border-slate-200 px-4 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand/30"
             type="email"
             required
             placeholder="Email"
@@ -229,7 +229,7 @@ export function LoginForm({
             onChange={(e) => setEmail(e.target.value)}
           />
           <input
-            className="h-12 w-full rounded-xl border border-slate-200 px-4 text-sm outline-none focus:border-blue-500"
+            className="h-12 w-full rounded-xl border border-slate-200 px-4 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand/30"
             type="password"
             required
             minLength={6}
@@ -240,7 +240,7 @@ export function LoginForm({
           <button
             type="submit"
             disabled={busy}
-            className="flex h-12 w-full items-center justify-center rounded-xl bg-blue-600 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-50"
+            className="flex h-12 w-full items-center justify-center rounded-md bg-brand text-sm font-semibold text-white hover:bg-brand/90 disabled:opacity-50"
           >
             {busy
               ? t(locale, "workingBusy")

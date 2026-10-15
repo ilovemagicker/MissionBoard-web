@@ -212,7 +212,7 @@ export default async function SchedulePage({
           <p className="text-sm text-slate-600">{t(locale, "noSpaces")}</p>
           <Link
             href="/app/spaces"
-            className="mt-4 inline-flex h-10 items-center rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white"
+            className="mt-4 inline-flex h-10 items-center rounded-md bg-brand px-4 text-sm font-semibold text-white"
           >
             {t(locale, "spaces")}
           </Link>

@@ -173,11 +173,11 @@ export function CalendarClient({
                 }}
                 className={`flex min-h-[3.25rem] flex-col items-center rounded-xl px-1 py-1.5 text-sm transition ${
                   selected
-                    ? "bg-blue-600 text-white"
+                    ? "bg-brand text-white"
                     : cell.inMonth
                       ? "hover:bg-slate-50 text-slate-900"
                       : "text-slate-300 hover:bg-slate-50"
-                } ${cell.isToday && !selected ? "ring-1 ring-blue-300" : ""}`}
+                } ${cell.isToday && !selected ? "ring-1 ring-brand/40" : ""}`}
               >
                 <span className="font-medium">{cell.day}</span>
                 <span className="mt-1 flex min-h-[0.4rem] flex-wrap justify-center gap-0.5">
@@ -241,7 +241,7 @@ export function CalendarClient({
                 <li key={e.mission.id}>
                   <Link
                     href={`/app/missions/${e.mission.id}`}
-                    className="flex items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 shadow-sm ring-1 ring-slate-200/80 hover:ring-blue-200"
+                    className="flex items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 shadow-sm ring-1 ring-slate-200/80 hover:ring-brand/30"
                   >
                     <div className="min-w-0">
                       <div className="mb-1 flex flex-wrap gap-1">
