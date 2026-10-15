@@ -84,7 +84,7 @@ export function LimitWallModal({
             <button
               type="button"
               onClick={() => setShowPaywall(true)}
-              className="mt-5 flex h-11 w-full items-center justify-center rounded-xl bg-blue-600 text-sm font-semibold text-white"
+              className="mt-5 flex h-11 w-full items-center justify-center rounded-xl bg-brand text-sm font-semibold text-white"
             >
               {t(locale, "monUpgradePro")}
             </button>

@@ -471,7 +471,7 @@ export function ScheduleGeneratePanel({
             <p className="mt-1 text-xs text-slate-500">
               {t(locale, "scheduleGenerateHint")}
             </p>
-            <p className="mt-2 text-[11px] font-semibold uppercase tracking-wide text-blue-600">
+            <p className="mt-2 text-[11px] font-semibold uppercase tracking-wide text-brand">
               {stepLabel}
             </p>
           </div>
@@ -559,7 +559,7 @@ export function ScheduleGeneratePanel({
                   <div className="flex gap-2 text-[11px] font-semibold">
                     <button
                       type="button"
-                      className="text-blue-600 hover:underline"
+                      className="text-brand hover:underline"
                       onClick={() =>
                         setSelectedUserIds(assignable.map((m) => m.user_id))
                       }
@@ -670,7 +670,7 @@ export function ScheduleGeneratePanel({
                       onClick={() => applyPreset(kind)}
                       className={`rounded-full px-3 py-1.5 text-xs font-semibold ring-1 ${
                         selected
-                          ? "bg-blue-600 text-white ring-blue-600"
+                          ? "bg-brand text-white ring-brand"
                           : "bg-white text-slate-700 ring-slate-200 hover:bg-slate-50"
                       }`}
                     >
@@ -978,7 +978,7 @@ export function ScheduleGeneratePanel({
                 type="button"
                 disabled={pending}
                 onClick={goNext}
-                className="inline-flex h-10 flex-1 items-center justify-center rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+                className="inline-flex h-10 flex-1 items-center justify-center rounded-xl bg-brand px-4 text-sm font-semibold text-white hover:bg-brand/90 disabled:opacity-60"
               >
                 {step === "pattern"
                   ? t(locale, "scheduleGeneratePreview")
@@ -990,7 +990,7 @@ export function ScheduleGeneratePanel({
                 type="button"
                 disabled={pending || preview.drafts.length === 0}
                 onClick={runGenerate}
-                className="inline-flex h-10 flex-1 items-center justify-center rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+                className="inline-flex h-10 flex-1 items-center justify-center rounded-xl bg-brand px-4 text-sm font-semibold text-white hover:bg-brand/90 disabled:opacity-60"
               >
                 {pending
                   ? t(locale, "scheduleGenerateWorking")

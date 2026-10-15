@@ -208,17 +208,19 @@ export function MissionDetailClient({
         : [];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {error && (
         <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
       )}
 
-      <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200/80">
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-6">
+        <div className="space-y-4">
+      <section className="rounded-lg border border-slate-200 bg-white p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-3">
               <MissionFlagIconView flagIcon={mission.flag_icon} size={44} />
-              <h1 className="text-2xl font-bold text-slate-900">{mission.title}</h1>
+              <h1 className="text-xl font-semibold text-slate-900">{mission.title}</h1>
               {mission.recurrence_id && (
                 <span
                   title={t(locale, "recurrenceIconA11y")}
@@ -366,168 +368,7 @@ export function MissionDetailClient({
         isArchived={isArchived}
       />
 
-      <MissionPollsPanel
-        locale={locale}
-        missionId={mission.id}
-        polls={polls}
-        options={pollOptions}
-        votes={pollVotes}
-        results={pollResults}
-        profiles={profiles}
-        userId={userId}
-        canVote={isSpaceEditor && !isArchived}
-        canClose={(p) =>
-          p.created_by === userId || isDecisionMaker || isAdminLike
-        }
-        canDelete={(p) => p.created_by === userId || isAdminLike}
-        enabled={pollsEnabled}
-        isArchived={isArchived}
-      />
-
-      <MissionStartReminderPanel
-        locale={locale}
-        mission={mission}
-        enabled={startReminderEnabled}
-        canEdit={canEditMeta}
-        isArchived={isArchived}
-      />
-
-      <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200/80">
-        <h2 className="mb-3 text-sm font-semibold tracking-wide text-slate-500">
-          {t(locale, "priorityDecisionSection")}
-        </h2>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="block text-sm">
-            <span className="mb-1 block font-medium text-slate-700">
-              {t(locale, "priority")}
-            </span>
-            <select
-              className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm"
-              disabled={pending || !canEditMeta || isArchived}
-              value={mission.priority ?? "none"}
-              onChange={(e) => {
-                const v = e.target.value;
-                const next: MissionPriority | null =
-                  v === "high" || v === "medium" || v === "low" ? v : null;
-                run(() => updateMissionPriorityAction(mission.id, next));
-              }}
-            >
-              <option value="high">{t(locale, "priorityHigh")}</option>
-              <option value="medium">{t(locale, "priorityMedium")}</option>
-              <option value="low">{t(locale, "priorityLow")}</option>
-              <option value="none">{t(locale, "priorityNone")}</option>
-            </select>
-          </label>
-          <label className="block text-sm">
-            <span className="mb-1 block font-medium text-slate-700">
-              {t(locale, "decisionMaker")}
-            </span>
-            <select
-              className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm"
-              disabled={pending || !canEditMeta || isArchived}
-              value={mission.decision_maker_id ?? ""}
-              onChange={(e) => {
-                const next = e.target.value || null;
-                run(() => updateMissionDecisionMakerAction(mission.id, next));
-              }}
-            >
-              <option value="">{t(locale, "decisionMakerNone")}</option>
-              {members.map((m) => (
-                <option key={m.user_id} value={m.user_id}>
-                  {profiles[m.user_id]?.display_name || m.user_id.slice(0, 8)}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-        {mission.decision_maker_id && (
-          <div className="mt-4 space-y-2 rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-200/80">
-            {decisionApproved ? (
-              <p className="text-sm font-medium text-emerald-700">
-                {t(locale, "decisionApproved")}
-                {mission.decision_approved_by
-                  ? ` · ${
-                      profiles[mission.decision_approved_by]?.display_name ||
-                      mission.decision_approved_by.slice(0, 8)
-                    }`
-                  : ""}
-              </p>
-            ) : awaitingDecision ? (
-              <p className="text-sm font-medium text-violet-700">
-                {t(locale, "decisionPending")}
-              </p>
-            ) : (
-              <p className="text-sm text-slate-600">
-                {t(locale, "decisionNotRequested")}
-              </p>
-            )}
-            <div className="flex flex-wrap gap-2">
-              {isDecisionMaker && !decisionApproved && (
-                <>
-                  <button
-                    type="button"
-                    disabled={pending || isArchived}
-                    onClick={() =>
-                      run(() => approveMissionDecisionAction(mission.id))
-                    }
-                    className="rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white"
-                  >
-                    {t(locale, "decisionApprove")}
-                  </button>
-                  {awaitingDecision && (
-                    <button
-                      type="button"
-                      disabled={pending || isArchived}
-                      onClick={() =>
-                        run(() => returnMissionDecisionAction(mission.id))
-                      }
-                      className="rounded-xl bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 ring-1 ring-slate-200"
-                    >
-                      {t(locale, "decisionReturn")}
-                    </button>
-                  )}
-                </>
-              )}
-              {!isDecisionMaker &&
-                !decisionApproved &&
-                mission.decision_maker_id &&
-                !isArchived && (
-                  <button
-                    type="button"
-                    disabled={pending}
-                    onClick={() =>
-                      run(() => requestMissionDecisionAction(mission.id))
-                    }
-                    className="rounded-xl bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white"
-                  >
-                    {awaitingDecision
-                      ? t(locale, "decisionRequestAgain")
-                      : t(locale, "decisionRequest")}
-                  </button>
-                )}
-            </div>
-            <p className="text-[11px] text-slate-400">
-              {t(locale, "decisionMakerHint")}
-            </p>
-          </div>
-        )}
-      </section>
-
-      <MissionRecurrencePanel
-        locale={locale}
-        missionId={mission.id}
-        startDate={mission.start_date}
-        recurrence={recurrence}
-        isTemplate={
-          !recurrence ||
-          !mission.recurrence_id ||
-          recurrence.template_mission_id === mission.id
-        }
-        canEdit={canEditMeta}
-        isArchived={isArchived}
-      />
-
-      <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200/80">
+      <section className="rounded-lg border border-slate-200 bg-white p-5">
         <h2 className="mb-2 text-sm font-semibold tracking-wide text-slate-500">
           {t(locale, "steps")}
         </h2>
@@ -875,7 +716,7 @@ export function MissionDetailClient({
         </form>
       </section>
 
-      <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200/80">
+      <section className="rounded-lg border border-slate-200 bg-white p-5">
         <h2 className="mb-4 text-sm font-semibold tracking-wide text-slate-500">
           {t(locale, "comments")}
         </h2>
@@ -913,6 +754,172 @@ export function MissionDetailClient({
         </form>
       </section>
 
+        </div>
+        <aside className="mt-4 space-y-4 lg:mt-0 lg:sticky lg:top-16">
+      <MissionPollsPanel
+        locale={locale}
+        missionId={mission.id}
+        polls={polls}
+        options={pollOptions}
+        votes={pollVotes}
+        results={pollResults}
+        profiles={profiles}
+        userId={userId}
+        canVote={isSpaceEditor && !isArchived}
+        canClose={(p) =>
+          p.created_by === userId || isDecisionMaker || isAdminLike
+        }
+        canDelete={(p) => p.created_by === userId || isAdminLike}
+        enabled={pollsEnabled}
+        isArchived={isArchived}
+      />
+
+      <MissionStartReminderPanel
+        locale={locale}
+        mission={mission}
+        enabled={startReminderEnabled}
+        canEdit={canEditMeta}
+        isArchived={isArchived}
+      />
+
+      <section className="rounded-lg border border-slate-200 bg-white p-5">
+        <h2 className="mb-3 text-sm font-semibold tracking-wide text-slate-500">
+          {t(locale, "priorityDecisionSection")}
+        </h2>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="block text-sm">
+            <span className="mb-1 block font-medium text-slate-700">
+              {t(locale, "priority")}
+            </span>
+            <select
+              className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm"
+              disabled={pending || !canEditMeta || isArchived}
+              value={mission.priority ?? "none"}
+              onChange={(e) => {
+                const v = e.target.value;
+                const next: MissionPriority | null =
+                  v === "high" || v === "medium" || v === "low" ? v : null;
+                run(() => updateMissionPriorityAction(mission.id, next));
+              }}
+            >
+              <option value="high">{t(locale, "priorityHigh")}</option>
+              <option value="medium">{t(locale, "priorityMedium")}</option>
+              <option value="low">{t(locale, "priorityLow")}</option>
+              <option value="none">{t(locale, "priorityNone")}</option>
+            </select>
+          </label>
+          <label className="block text-sm">
+            <span className="mb-1 block font-medium text-slate-700">
+              {t(locale, "decisionMaker")}
+            </span>
+            <select
+              className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm"
+              disabled={pending || !canEditMeta || isArchived}
+              value={mission.decision_maker_id ?? ""}
+              onChange={(e) => {
+                const next = e.target.value || null;
+                run(() => updateMissionDecisionMakerAction(mission.id, next));
+              }}
+            >
+              <option value="">{t(locale, "decisionMakerNone")}</option>
+              {members.map((m) => (
+                <option key={m.user_id} value={m.user_id}>
+                  {profiles[m.user_id]?.display_name || m.user_id.slice(0, 8)}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        {mission.decision_maker_id && (
+          <div className="mt-4 space-y-2 rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-200/80">
+            {decisionApproved ? (
+              <p className="text-sm font-medium text-emerald-700">
+                {t(locale, "decisionApproved")}
+                {mission.decision_approved_by
+                  ? ` · ${
+                      profiles[mission.decision_approved_by]?.display_name ||
+                      mission.decision_approved_by.slice(0, 8)
+                    }`
+                  : ""}
+              </p>
+            ) : awaitingDecision ? (
+              <p className="text-sm font-medium text-violet-700">
+                {t(locale, "decisionPending")}
+              </p>
+            ) : (
+              <p className="text-sm text-slate-600">
+                {t(locale, "decisionNotRequested")}
+              </p>
+            )}
+            <div className="flex flex-wrap gap-2">
+              {isDecisionMaker && !decisionApproved && (
+                <>
+                  <button
+                    type="button"
+                    disabled={pending || isArchived}
+                    onClick={() =>
+                      run(() => approveMissionDecisionAction(mission.id))
+                    }
+                    className="rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white"
+                  >
+                    {t(locale, "decisionApprove")}
+                  </button>
+                  {awaitingDecision && (
+                    <button
+                      type="button"
+                      disabled={pending || isArchived}
+                      onClick={() =>
+                        run(() => returnMissionDecisionAction(mission.id))
+                      }
+                      className="rounded-xl bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 ring-1 ring-slate-200"
+                    >
+                      {t(locale, "decisionReturn")}
+                    </button>
+                  )}
+                </>
+              )}
+              {!isDecisionMaker &&
+                !decisionApproved &&
+                mission.decision_maker_id &&
+                !isArchived && (
+                  <button
+                    type="button"
+                    disabled={pending}
+                    onClick={() =>
+                      run(() => requestMissionDecisionAction(mission.id))
+                    }
+                    className="rounded-xl bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white"
+                  >
+                    {awaitingDecision
+                      ? t(locale, "decisionRequestAgain")
+                      : t(locale, "decisionRequest")}
+                  </button>
+                )}
+            </div>
+            <p className="text-[11px] text-slate-400">
+              {t(locale, "decisionMakerHint")}
+            </p>
+          </div>
+        )}
+      </section>
+
+      <MissionRecurrencePanel
+        locale={locale}
+        missionId={mission.id}
+        startDate={mission.start_date}
+        recurrence={recurrence}
+        isTemplate={
+          !recurrence ||
+          !mission.recurrence_id ||
+          recurrence.template_mission_id === mission.id
+        }
+        canEdit={canEditMeta}
+        isArchived={isArchived}
+      />
+
+        </aside>
+      </div>
+
       {panel && (
         <div
           className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center"
@@ -921,7 +928,7 @@ export function MissionDetailClient({
           onClick={() => setPanel(null)}
         >
           <div
-            className="w-full max-w-md rounded-3xl bg-white p-5 shadow-xl"
+            className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-5 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-3 flex items-center justify-between">

@@ -37,7 +37,7 @@ export function PlanQuotaView({
 
   return (
     <div className="space-y-4">
-      <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200/80">
+      <section className="rounded-lg border border-slate-200 bg-white p-5">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-sm font-semibold text-slate-500">
             {t(locale, "monCurrentPlan")}
@@ -67,13 +67,13 @@ export function PlanQuotaView({
         <button
           type="button"
           onClick={() => void refresh()}
-          className="mt-3 h-8 rounded-lg px-3 text-xs font-semibold text-blue-600 hover:bg-blue-50"
+          className="mt-3 h-8 rounded-lg px-3 text-xs font-semibold text-brand hover:bg-brand/10"
         >
           {t(locale, "monRefreshEntitlements")}
         </button>
       </section>
 
-      <section className="space-y-4 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200/80">
+      <section className="space-y-4 rounded-lg border border-slate-200 bg-white p-5">
         <h2 className="text-sm font-semibold text-slate-500">
           {t(locale, "monQuotaSection")}
         </h2>
@@ -97,7 +97,7 @@ export function PlanQuotaView({
         />
       </section>
 
-      <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200/80">
+      <section className="rounded-lg border border-slate-200 bg-white p-5">
         {isPro ? (
           <button
             type="button"
@@ -110,14 +110,14 @@ export function PlanQuotaView({
           <button
             type="button"
             onClick={() => setShowPaywall(true)}
-            className="flex h-11 w-full items-center justify-center rounded-xl bg-blue-600 text-sm font-semibold text-white"
+            className="flex h-11 w-full items-center justify-center rounded-xl bg-brand text-sm font-semibold text-white"
           >
             {t(locale, "monUpgradePro")}
           </button>
         )}
       </section>
 
-      <section className="rounded-3xl bg-amber-50/80 p-5 ring-1 ring-amber-200/80">
+      <section className="rounded-lg border border-amber-200 bg-amber-50/80 p-5">
         <p className="text-[10px] font-bold uppercase tracking-wide text-amber-700">
           DEBUG
         </p>

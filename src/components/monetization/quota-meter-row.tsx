@@ -29,7 +29,7 @@ export function QuotaMeterRow({
       <div className="h-2 overflow-hidden rounded-full bg-slate-100">
         <div
           className={`h-full rounded-full transition-all ${
-            atLimit ? "bg-orange-500" : "bg-blue-600"
+            atLimit ? "bg-orange-500" : "bg-brand"
           }`}
           style={{ width: `${Math.max(4, ratio * 100)}%` }}
         />

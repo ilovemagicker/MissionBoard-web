@@ -40,7 +40,7 @@ export function ProfilePanel({
   const initials = (name || email || "?").trim().slice(0, 2).toUpperCase();
 
   return (
-    <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200/80">
+    <section className="rounded-lg border border-slate-200 bg-white p-5">
       <h2 className="text-sm font-semibold tracking-wide text-slate-500">
         {t(locale, "profileSection")}
       </h2>
@@ -53,7 +53,7 @@ export function ProfilePanel({
             className="h-14 w-14 rounded-full object-cover ring-1 ring-slate-200"
           />
         ) : (
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-800">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-brand/10 text-sm font-bold text-brand">
             {initials}
           </div>
         )}
@@ -104,7 +104,7 @@ export function ProfilePanel({
         type="button"
         disabled={pending}
         onClick={save}
-        className="mt-4 h-10 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-50"
+        className="mt-4 h-10 rounded-xl bg-brand px-4 text-sm font-semibold text-white hover:bg-brand/90 disabled:opacity-50"
       >
         {pending ? t(locale, "loading") : t(locale, "save")}
       </button>

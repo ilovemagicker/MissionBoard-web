@@ -68,7 +68,16 @@ export function SpacesClient({
   const [transferTarget, setTransferTarget] = useState<string>("");
   const [wallKind, setWallKind] = useState<LimitKind | null>(null);
   const [wallOpen, setWallOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(
+    spaces[0]?.id ?? null
+  );
+  const [showCreateJoin, setShowCreateJoin] = useState(spaces.length === 0);
   const autoRedeemOnce = useRef(false);
+
+  useEffect(() => {
+    if (selectedId && spaces.some((s) => s.id === selectedId)) return;
+    setSelectedId(spaces[0]?.id ?? null);
+  }, [spaces, selectedId]);
 
   function openWall(kind: LimitKind) {
     setWallKind(kind);
@@ -319,10 +328,24 @@ export function SpacesClient({
         </p>
       )}
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-xl font-semibold tracking-tight text-slate-900">
+          {t(locale, "spaces")}
+        </h1>
+        <button
+          type="button"
+          onClick={() => setShowCreateJoin((v) => !v)}
+          className="inline-flex h-9 items-center rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+        >
+          {showCreateJoin ? t(locale, "close") : t(locale, "createSpace") + " / " + t(locale, "joinSpace")}
+        </button>
+      </div>
+
+      {showCreateJoin ? (
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         <form
           onSubmit={onCreate}
-          className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200/80"
+          className="rounded-lg border border-slate-200 bg-white p-4"
         >
           <h2 className="text-sm font-semibold text-slate-500">
             {t(locale, "createSpace")}
@@ -337,7 +360,7 @@ export function SpacesClient({
           <button
             type="submit"
             disabled={pending}
-            className="mt-3 h-10 w-full rounded-xl bg-blue-600 text-sm font-semibold text-white"
+            className="mt-3 h-9 w-full rounded-md bg-brand text-sm font-semibold text-white"
           >
             {t(locale, "create")}
           </button>
@@ -345,7 +368,7 @@ export function SpacesClient({
 
         <form
           onSubmit={onJoin}
-          className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200/80"
+          className="rounded-lg border border-slate-200 bg-white p-4"
         >
           <h2 className="text-sm font-semibold text-slate-500">
             {t(locale, "joinSpace")}
@@ -370,7 +393,7 @@ export function SpacesClient({
 
         <form
           onSubmit={onRedeemFamily}
-          className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-indigo-200/80"
+          className="rounded-lg border border-indigo-200 bg-white p-4"
         >
           <h2 className="text-sm font-semibold text-indigo-700">
             {t(locale, "scheduleRedeemTitle")}
@@ -417,9 +440,10 @@ export function SpacesClient({
           </div>
         </form>
       </section>
+      ) : null}
 
       {pendingRequests.length > 0 && (
-        <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200/80">
+        <section className="rounded-lg border border-slate-200 bg-white p-4">
           <h2 className="mb-3 text-sm font-semibold text-slate-500">
             {t(locale, "pendingRequests")}
           </h2>
@@ -462,159 +486,185 @@ export function SpacesClient({
         </section>
       )}
 
-      <section className="space-y-3">
-        {spaces.length === 0 ? (
-          <p className="rounded-2xl bg-white p-6 text-sm text-slate-500 shadow-sm ring-1 ring-slate-200/80">
-            {t(locale, "noSpaces")}
-          </p>
-        ) : (
-          spaces.map((s) => {
-            const archived = !!s.archived_at;
-            const isOwner = s.role === "owner";
-            const otherMembers = (membersBySpace[s.id] ?? []).filter(
-              (m) => m.role !== "owner"
-            );
-            const showTransfer = transferFor === s.id;
-            return (
-              <div
-                key={s.id}
-                className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200/80"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <h3 className="text-lg font-bold text-slate-900">
-                      {s.name}
-                      {archived && (
-                        <span className="ml-2 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 ring-1 ring-amber-200">
-                          {t(locale, "archived")}
-                        </span>
-                      )}
-                    </h3>
-                    <p className="text-xs text-slate-500">
-                      {roleLabel(locale, s.role)} · {t(locale, "inviteCode")}:{" "}
-                      <code className="rounded bg-slate-100 px-1">{s.invite_code}</code>
-                    </p>
-                  </div>
-                  {isOwner && (
-                    <div className="flex flex-wrap gap-2">
-                      {otherMembers.length > 0 && (
+      {spaces.length === 0 ? (
+        <p className="rounded-lg border border-slate-200 bg-white px-4 py-10 text-center text-sm text-slate-500">
+          {t(locale, "noSpaces")}
+        </p>
+      ) : (
+        <div className="lg:grid lg:grid-cols-[minmax(220px,280px)_minmax(0,1fr)] lg:gap-4 lg:items-start">
+          <ul className="mb-3 overflow-hidden rounded-lg border border-slate-200 bg-white lg:mb-0">
+            {spaces.map((s) => {
+              const active = s.id === selectedId;
+              return (
+                <li key={s.id} className="border-b border-slate-100 last:border-b-0">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedId(s.id)}
+                    className={`flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left text-sm ${
+                      active
+                        ? "bg-brand/10 text-brand"
+                        : "text-slate-800 hover:bg-slate-50"
+                    }`}
+                  >
+                    <span className="min-w-0 truncate font-medium">{s.name}</span>
+                    <span className="shrink-0 text-[11px] text-slate-500">
+                      {roleLabel(locale, s.role)}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+
+          <div>
+            {(() => {
+              const s = spaces.find((x) => x.id === selectedId) ?? spaces[0];
+              if (!s) return null;
+              const archived = !!s.archived_at;
+              const isOwner = s.role === "owner";
+              const otherMembers = (membersBySpace[s.id] ?? []).filter(
+                (m) => m.role !== "owner"
+              );
+              const showTransfer = transferFor === s.id;
+              return (
+                <div className="rounded-lg border border-slate-200 bg-white p-5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <h3 className="text-lg font-semibold text-slate-900">
+                        {s.name}
+                        {archived && (
+                          <span className="ml-2 rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 ring-1 ring-amber-200">
+                            {t(locale, "archived")}
+                          </span>
+                        )}
+                      </h3>
+                      <p className="text-xs text-slate-500">
+                        {roleLabel(locale, s.role)} · {t(locale, "inviteCode")}:{" "}
+                        <code className="rounded bg-slate-100 px-1">{s.invite_code}</code>
+                      </p>
+                    </div>
+                    {isOwner && (
+                      <div className="flex flex-wrap gap-2">
+                        {otherMembers.length > 0 && (
+                          <button
+                            type="button"
+                            disabled={pending}
+                            onClick={() => {
+                              setTransferFor(showTransfer ? null : s.id);
+                              setTransferTarget("");
+                              setError(null);
+                            }}
+                            className="rounded-md bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700"
+                          >
+                            {t(locale, "transferOwnership")}
+                          </button>
+                        )}
                         <button
                           type="button"
                           disabled={pending}
                           onClick={() => {
-                            setTransferFor(showTransfer ? null : s.id);
-                            setTransferTarget("");
-                            setError(null);
+                            if (
+                              !archived &&
+                              !window.confirm(t(locale, "archiveSpaceConfirm"))
+                            ) {
+                              return;
+                            }
+                            run(() =>
+                              archived
+                                ? unarchiveSpaceAction(s.id)
+                                : archiveSpaceAction(s.id)
+                            );
                           }}
-                          className="rounded-lg bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700"
+                          className="rounded-md bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700"
                         >
-                          {t(locale, "transferOwnership")}
+                          {archived
+                            ? t(locale, "unarchiveSpace")
+                            : t(locale, "archiveSpace")}
                         </button>
-                      )}
+                        <button
+                          type="button"
+                          disabled={pending}
+                          onClick={() => {
+                            if (!window.confirm(t(locale, "deleteSpaceConfirm")))
+                              return;
+                            run(() => deleteSpaceAction(s.id));
+                          }}
+                          className="rounded-md bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700"
+                        >
+                          {t(locale, "deleteSpace")}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {showTransfer && (
+                    <div className="mt-3 flex flex-wrap items-end gap-2 rounded-md bg-indigo-50/80 p-3 ring-1 ring-indigo-100">
+                      <label className="min-w-[12rem] flex-1 text-xs font-semibold text-indigo-900">
+                        {t(locale, "transferOwnershipPick")}
+                        <select
+                          value={transferTarget}
+                          onChange={(e) => setTransferTarget(e.target.value)}
+                          className="mt-1 h-9 w-full rounded-md border border-indigo-200 bg-white px-2 text-sm text-slate-800"
+                        >
+                          <option value="">—</option>
+                          {otherMembers.map((m) => (
+                            <option key={m.user_id} value={m.user_id}>
+                              {profiles[m.user_id]?.display_name ||
+                                m.nickname ||
+                                m.user_id.slice(0, 8)}{" "}
+                              ({roleLabel(locale, m.role)})
+                            </option>
+                          ))}
+                        </select>
+                      </label>
                       <button
                         type="button"
-                        disabled={pending}
-                        onClick={() => {
-                          if (
-                            !archived &&
-                            !window.confirm(t(locale, "archiveSpaceConfirm"))
-                          ) {
-                            return;
-                          }
-                          run(() =>
-                            archived
-                              ? unarchiveSpaceAction(s.id)
-                              : archiveSpaceAction(s.id)
-                          );
-                        }}
-                        className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700"
+                        disabled={pending || !transferTarget}
+                        onClick={() => onTransfer(s.id)}
+                        className="h-9 rounded-md bg-indigo-600 px-4 text-xs font-semibold text-white disabled:opacity-50"
                       >
-                        {archived
-                          ? t(locale, "unarchiveSpace")
-                          : t(locale, "archiveSpace")}
+                        {t(locale, "transferOwnership")}
                       </button>
                       <button
                         type="button"
                         disabled={pending}
                         onClick={() => {
-                          if (!window.confirm(t(locale, "deleteSpaceConfirm"))) return;
-                          run(() => deleteSpaceAction(s.id));
+                          setTransferFor(null);
+                          setTransferTarget("");
                         }}
-                        className="rounded-lg bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700"
+                        className="h-9 rounded-md bg-white px-3 text-xs font-semibold text-slate-600 ring-1 ring-slate-200"
                       >
-                        {t(locale, "deleteSpace")}
+                        {t(locale, "cancel")}
                       </button>
                     </div>
                   )}
-                </div>
 
-                {showTransfer && (
-                  <div className="mt-3 flex flex-wrap items-end gap-2 rounded-2xl bg-indigo-50/80 p-3 ring-1 ring-indigo-100">
-                    <label className="min-w-[12rem] flex-1 text-xs font-semibold text-indigo-900">
-                      {t(locale, "transferOwnershipPick")}
-                      <select
-                        value={transferTarget}
-                        onChange={(e) => setTransferTarget(e.target.value)}
-                        className="mt-1 h-9 w-full rounded-xl border border-indigo-200 bg-white px-2 text-sm text-slate-800"
+                  <h4 className="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                    {t(locale, "members")}
+                  </h4>
+                  <ul className="mt-2 divide-y divide-slate-100">
+                    {(membersBySpace[s.id] ?? []).map((m) => (
+                      <li
+                        key={m.user_id}
+                        className="flex justify-between py-1.5 text-sm text-slate-700"
                       >
-                        <option value="">—</option>
-                        {otherMembers.map((m) => (
-                          <option key={m.user_id} value={m.user_id}>
-                            {profiles[m.user_id]?.display_name ||
-                              m.nickname ||
-                              m.user_id.slice(0, 8)}{" "}
-                            ({roleLabel(locale, m.role)})
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <button
-                      type="button"
-                      disabled={pending || !transferTarget}
-                      onClick={() => onTransfer(s.id)}
-                      className="h-9 rounded-xl bg-indigo-600 px-4 text-xs font-semibold text-white disabled:opacity-50"
-                    >
-                      {t(locale, "transferOwnership")}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={pending}
-                      onClick={() => {
-                        setTransferFor(null);
-                        setTransferTarget("");
-                      }}
-                      className="h-9 rounded-xl bg-white px-3 text-xs font-semibold text-slate-600 ring-1 ring-slate-200"
-                    >
-                      {t(locale, "cancel")}
-                    </button>
-                  </div>
-                )}
-
-                <h4 className="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  {t(locale, "members")}
-                </h4>
-                <ul className="mt-2 space-y-1">
-                  {(membersBySpace[s.id] ?? []).map((m) => (
-                    <li
-                      key={m.user_id}
-                      className="flex justify-between text-sm text-slate-700"
-                    >
-                      <span>
-                        {profiles[m.user_id]?.display_name ||
-                          m.nickname ||
-                          m.user_id.slice(0, 8)}
-                      </span>
-                      <span className="text-xs text-slate-500">
-                        {roleLabel(locale, m.role)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            );
-          })
-        )}
-      </section>
+                        <span>
+                          {profiles[m.user_id]?.display_name ||
+                            m.nickname ||
+                            m.user_id.slice(0, 8)}
+                        </span>
+                        <span className="text-xs text-slate-500">
+                          {roleLabel(locale, m.role)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
 
       <LimitWallModal
         locale={locale}

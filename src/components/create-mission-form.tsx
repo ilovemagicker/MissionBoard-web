@@ -73,7 +73,7 @@ export function CreateMissionForm({
   return (
     <form
       onSubmit={onSubmit}
-      className="space-y-3 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200/80"
+      className="space-y-3 rounded-lg border border-slate-200 bg-white p-5"
     >
       {error && (
         <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>

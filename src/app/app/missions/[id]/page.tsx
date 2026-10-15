@@ -250,7 +250,7 @@ export default async function MissionDetailPage({
       nav="missions"
     >
       <div className="mb-4">
-        <Link href="/app/missions" className="text-sm font-medium text-blue-600">
+        <Link href="/app/missions" className="text-sm font-medium text-brand">
           ← {t(locale, "back")}
         </Link>
       </div>
