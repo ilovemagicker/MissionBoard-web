@@ -367,7 +367,7 @@ export function ScheduleSwapInbox({
                 type="button"
                 disabled={busy}
                 onClick={() => run(req, "accept")}
-                className="inline-flex h-8 items-center rounded-lg bg-blue-600 px-3 text-xs font-semibold text-white disabled:opacity-60"
+                className="inline-flex h-8 items-center rounded-lg bg-brand px-3 text-xs font-semibold text-white disabled:opacity-60"
               >
                 {acceptTitle(req)}
               </button>
@@ -655,7 +655,7 @@ export function ScheduleSwapRequestSheet({
                 }}
                 className={`flex-1 rounded-xl px-3 py-2 text-sm font-semibold ${
                   kind === "cover"
-                    ? "bg-blue-600 text-white"
+                    ? "bg-brand text-white"
                     : "bg-slate-100 text-slate-700"
                 }`}
               >
@@ -666,7 +666,7 @@ export function ScheduleSwapRequestSheet({
                 onClick={() => setKind("swap")}
                 className={`flex-1 rounded-xl px-3 py-2 text-sm font-semibold ${
                   kind === "swap"
-                    ? "bg-blue-600 text-white"
+                    ? "bg-brand text-white"
                     : "bg-slate-100 text-slate-700"
                 }`}
               >
@@ -769,7 +769,7 @@ export function ScheduleSwapRequestSheet({
             type="button"
             disabled={pending}
             onClick={submit}
-            className="h-10 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+            className="h-10 rounded-xl bg-brand px-4 text-sm font-semibold text-white hover:bg-brand/90 disabled:opacity-60"
           >
             {t(locale, "scheduleSwapSubmit")}
           </button>

@@ -125,8 +125,8 @@ export default async function SettingsPage() {
       email={user.email}
       nav="settings"
     >
-      <div className="mb-4">
-        <h1 className="text-xl font-bold text-slate-900">
+      <div className="mb-5">
+        <h1 className="text-xl font-semibold tracking-tight text-slate-900">
           {t(locale, "meTitle")}
         </h1>
         <p className="mt-1 text-sm text-slate-500">
@@ -134,33 +134,58 @@ export default async function SettingsPage() {
         </p>
       </div>
 
-      <div className="space-y-6">
-        <ProfilePanel
-          locale={locale}
-          displayName={displayName}
-          avatarUrl={avatarUrl}
-          email={user.email ?? null}
-          authProvider={authProvider}
-        />
+      <div className="lg:grid lg:grid-cols-[200px_minmax(0,1fr)] lg:gap-8 lg:items-start">
+        <nav className="mb-4 flex flex-wrap gap-1 lg:mb-0 lg:sticky lg:top-16 lg:flex-col">
+          {[
+            { id: "profile", label: t(locale, "profileSection") },
+            { id: "plan", label: t(locale, "monPlanQuotaTitle") },
+            { id: "notifications", label: t(locale, "notificationsSection") },
+            { id: "account", label: t(locale, "accountSection") },
+          ].map((item) => (
+            <a
+              key={item.id}
+              href={`#${item.id}`}
+              className="rounded-md px-2.5 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+            >
+              {item.label}
+            </a>
+          ))}
+        </nav>
 
-        <div>
-          <h2 className="mb-3 text-sm font-semibold tracking-wide text-slate-500">
-            {t(locale, "monPlanQuotaTitle")}
-          </h2>
-          <PlanQuotaView
-            locale={locale}
-            spacesUsed={spacesUsed}
-            membersUsed={membersUsed}
-          />
+        <div className="space-y-4">
+          <div id="profile">
+            <ProfilePanel
+              locale={locale}
+              displayName={displayName}
+              avatarUrl={avatarUrl}
+              email={user.email ?? null}
+              authProvider={authProvider}
+            />
+          </div>
+
+          <div id="plan">
+            <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+              {t(locale, "monPlanQuotaTitle")}
+            </h2>
+            <PlanQuotaView
+              locale={locale}
+              spacesUsed={spacesUsed}
+              membersUsed={membersUsed}
+            />
+          </div>
+
+          <div id="notifications">
+            <NotificationPrefsPanel
+              locale={locale}
+              enabled={prefsSchemaOk}
+              prefs={prefs}
+            />
+          </div>
+
+          <div id="account">
+            <AccountPanel locale={locale} />
+          </div>
         </div>
-
-        <NotificationPrefsPanel
-          locale={locale}
-          enabled={prefsSchemaOk}
-          prefs={prefs}
-        />
-
-        <AccountPanel locale={locale} />
       </div>
     </AppShell>
   );

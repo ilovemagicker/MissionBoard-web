@@ -162,7 +162,7 @@ export function NotificationPrefsPanel({
   }
 
   return (
-    <section className="mt-6 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200/80">
+    <section className="rounded-lg border border-slate-200 bg-white p-5">
       <h2 className="text-sm font-semibold tracking-wide text-slate-500">
         {t(locale, "notificationsSection")}
       </h2>
@@ -251,7 +251,7 @@ export function NotificationPrefsPanel({
         type="button"
         disabled={pending}
         onClick={save}
-        className="mt-5 h-10 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-50"
+        className="mt-5 h-10 rounded-xl bg-brand px-4 text-sm font-semibold text-white hover:bg-brand/90 disabled:opacity-50"
       >
         {pending ? t(locale, "loading") : t(locale, "save")}
       </button>

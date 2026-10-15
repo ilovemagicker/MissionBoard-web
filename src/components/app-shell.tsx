@@ -7,6 +7,7 @@ import { HeaderPlanBadge } from "@/components/monetization/header-plan-badge";
 import { OnboardingTour } from "@/components/onboarding-tour";
 import { SpaceSwitcher } from "@/components/space-switcher";
 import { UserMenu } from "@/components/user-menu";
+import { ACTIVITY_UNREAD_PREFIX } from "@/lib/activity-unread";
 import { t, type MessageKey } from "@/lib/i18n";
 import type { Locale, SpaceWithRole } from "@/lib/types";
 
@@ -140,6 +141,40 @@ export function AppShell({
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [activityUnread, setActivityUnread] = useState(false);
+
+  useEffect(() => {
+    function read() {
+      if (!activeSpaceId) {
+        setActivityUnread(false);
+        return;
+      }
+      try {
+        setActivityUnread(
+          localStorage.getItem(`${ACTIVITY_UNREAD_PREFIX}${activeSpaceId}`) === "1"
+        );
+      } catch {
+        setActivityUnread(false);
+      }
+    }
+    read();
+    function onEvt(e: Event) {
+      const detail = (e as CustomEvent).detail as
+        | { spaceId?: string; hasUnread?: boolean }
+        | undefined;
+      if (detail?.spaceId && detail.spaceId === activeSpaceId) {
+        setActivityUnread(!!detail.hasUnread);
+      } else {
+        read();
+      }
+    }
+    window.addEventListener("mb-activity-unread", onEvt);
+    window.addEventListener("storage", read);
+    return () => {
+      window.removeEventListener("mb-activity-unread", onEvt);
+      window.removeEventListener("storage", read);
+    };
+  }, [activeSpaceId]);
 
   useEffect(() => {
     try {
@@ -233,8 +268,20 @@ export function AppShell({
             aria-hidden
           />
         )}
-        <Icon className="h-4 w-4 shrink-0" />
-        {!opts.collapsedView && <span className="truncate">{t(locale, item.key)}</span>}
+        <span className="relative shrink-0">
+          <Icon className="h-4 w-4" />
+          {item.id === "activity" && activityUnread ? (
+            <span className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-brand ring-2 ring-white" />
+          ) : null}
+        </span>
+        {!opts.collapsedView && (
+          <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
+            <span className="truncate">{t(locale, item.key)}</span>
+            {item.id === "activity" && activityUnread ? (
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand" />
+            ) : null}
+          </span>
+        )}
       </Link>
     );
   }

@@ -18,7 +18,7 @@ export default async function AppLayout({
   if (!isSupabaseConfigured()) {
     return (
       <main className="mx-auto max-w-lg px-6 py-16">
-        <div className="rounded-3xl bg-white p-8 shadow-sm ring-1 ring-slate-200/80">
+        <div className="rounded-lg border border-slate-200 bg-white p-8">
           <h1 className="text-lg font-semibold text-slate-900">
             {t("zh-Hant", "envMissing")}
           </h1>

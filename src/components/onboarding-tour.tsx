@@ -125,7 +125,7 @@ export function OnboardingTour({ locale }: { locale: Locale }) {
       >
         <div className="mb-3 flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">
+            <p className="text-xs font-semibold uppercase tracking-wide text-brand">
               {t(locale, "onboardingTitle")}
             </p>
             <p className="mt-1 text-xs text-slate-500">
@@ -149,7 +149,7 @@ export function OnboardingTour({ locale }: { locale: Locale }) {
             <span
               key={i}
               className={`h-1.5 flex-1 rounded-full ${
-                i <= step ? "bg-blue-600" : "bg-slate-200"
+                i <= step ? "bg-brand" : "bg-slate-200"
               }`}
             />
           ))}
@@ -168,7 +168,7 @@ export function OnboardingTour({ locale }: { locale: Locale }) {
         <Link
           href={current.href}
           onClick={dismiss}
-          className="mt-4 inline-flex text-sm font-semibold text-blue-600 hover:text-blue-700"
+          className="mt-4 inline-flex text-sm font-semibold text-brand hover:text-brand"
         >
           {t(locale, current.ctaKey)} →
         </Link>
@@ -178,7 +178,7 @@ export function OnboardingTour({ locale }: { locale: Locale }) {
             <button
               type="button"
               onClick={() => setStep((s) => Math.min(s + 1, total - 1))}
-              className="h-10 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"
+              className="h-10 rounded-xl bg-brand px-4 text-sm font-semibold text-white hover:bg-brand/90"
             >
               {t(locale, "onboardingNext")}
             </button>
@@ -186,7 +186,7 @@ export function OnboardingTour({ locale }: { locale: Locale }) {
             <button
               type="button"
               onClick={dismiss}
-              className="h-10 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"
+              className="h-10 rounded-xl bg-brand px-4 text-sm font-semibold text-white hover:bg-brand/90"
             >
               {t(locale, "onboardingDone")}
             </button>

@@ -7,9 +7,14 @@ import { activityKindLabel, dateLocale, t } from "@/lib/i18n";
 import type { ActivityEventRow, Locale, ProfileRow } from "@/lib/types";
 
 const SEEN_KEY_PREFIX = "mb_activity_seen_";
+import { ACTIVITY_UNREAD_PREFIX } from "@/lib/activity-unread";
 
 function seenKey(spaceId: string) {
   return `${SEEN_KEY_PREFIX}${spaceId}`;
+}
+
+function unreadKey(spaceId: string) {
+  return `${ACTIVITY_UNREAD_PREFIX}${spaceId}`;
 }
 
 function formatWhen(iso: string, locale: Locale): string {
@@ -23,6 +28,20 @@ function formatWhen(iso: string, locale: Locale): string {
     });
   } catch {
     return iso;
+  }
+}
+
+function writeUnreadFlag(spaceId: string, hasUnread: boolean) {
+  try {
+    if (hasUnread) localStorage.setItem(unreadKey(spaceId), "1");
+    else localStorage.removeItem(unreadKey(spaceId));
+    window.dispatchEvent(
+      new CustomEvent("mb-activity-unread", {
+        detail: { spaceId, hasUnread },
+      })
+    );
+  } catch {
+    /* ignore */
   }
 }
 
@@ -54,6 +73,21 @@ export function ActivityClient({
     }
   }, [spaceId]);
 
+  function isUnread(e: ActivityEventRow): boolean {
+    if (!seenAt) return true;
+    return new Date(e.created_at).getTime() > new Date(seenAt).getTime();
+  }
+
+  const unreadCount = useMemo(
+    () => events.filter(isUnread).length,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [events, seenAt]
+  );
+
+  useEffect(() => {
+    writeUnreadFlag(spaceId, unreadCount > 0);
+  }, [spaceId, unreadCount]);
+
   const markSeen = useCallback(() => {
     const now = new Date().toISOString();
     try {
@@ -62,6 +96,7 @@ export function ActivityClient({
       /* ignore */
     }
     setSeenAt(now);
+    writeUnreadFlag(spaceId, false);
   }, [spaceId]);
 
   useEffect(() => {
@@ -90,7 +125,9 @@ export function ActivityClient({
             .maybeSingle();
           if (data) {
             setProfiles((p) =>
-              p[data.id as string] ? p : { ...p, [data.id as string]: data as ProfileRow }
+              p[data.id as string]
+                ? p
+                : { ...p, [data.id as string]: data as ProfileRow }
             );
           }
         }
@@ -113,15 +150,10 @@ export function ActivityClient({
     [events, cutoff]
   );
 
-  function isUnread(e: ActivityEventRow): boolean {
-    if (!seenAt) return true;
-    return new Date(e.created_at).getTime() > new Date(seenAt).getTime();
-  }
-
   function renderList(rows: ActivityEventRow[]) {
     if (rows.length === 0) return null;
     return (
-      <ul className="space-y-2">
+      <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white">
         {rows.map((e) => {
           const unread = isUnread(e);
           const actor =
@@ -129,32 +161,39 @@ export function ActivityClient({
             (e.actor_id ? e.actor_id.slice(0, 8) : "—");
           const inner = (
             <div
-              className={`flex items-start justify-between gap-3 rounded-2xl px-4 py-3 shadow-sm ring-1 ${
-                unread
-                  ? "bg-blue-50/70 ring-blue-200"
-                  : "bg-white ring-slate-200/80"
+              className={`flex min-h-[44px] items-start gap-2.5 px-3 py-2.5 ${
+                unread ? "bg-brand/[0.04]" : ""
               }`}
             >
-              <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  {activityKindLabel(locale, e.kind)}
-                  {unread && (
-                    <span className="ml-2 inline-block h-1.5 w-1.5 rounded-full bg-blue-600 align-middle" />
-                  )}
-                </p>
-                <p className="mt-0.5 truncate text-sm font-medium text-slate-900">
+              <span
+                className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${
+                  unread ? "bg-brand" : "bg-transparent"
+                }`}
+                aria-hidden
+              />
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                    {activityKindLabel(locale, e.kind)}
+                  </p>
+                  <p className="text-[11px] tabular-nums text-slate-400">
+                    {formatWhen(e.created_at, locale)}
+                  </p>
+                </div>
+                <p className="truncate text-[13px] font-medium text-slate-900">
                   {e.summary || "—"}
                 </p>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  {actor} · {formatWhen(e.created_at, locale)}
-                </p>
+                <p className="text-xs text-slate-500">{actor}</p>
               </div>
             </div>
           );
           return (
             <li key={e.id}>
               {e.mission_id ? (
-                <Link href={`/app/missions/${e.mission_id}`} className="block hover:opacity-90">
+                <Link
+                  href={`/app/missions/${e.mission_id}`}
+                  className="block hover:bg-slate-50"
+                >
                   {inner}
                 </Link>
               ) : (
@@ -169,19 +208,28 @@ export function ActivityClient({
 
   if (events.length === 0) {
     return (
-      <p className="rounded-2xl bg-white p-6 text-sm text-slate-500 shadow-sm ring-1 ring-slate-200/80">
+      <div className="rounded-lg border border-slate-200 bg-white px-4 py-10 text-center text-sm text-slate-500">
         {t(locale, "activityEmpty")}
-      </p>
+      </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-end">
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-xl font-semibold tracking-tight text-slate-900">
+          {t(locale, "activity")}
+          {unreadCount > 0 ? (
+            <span className="ml-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1.5 text-[10px] font-bold text-white">
+              {unreadCount}
+            </span>
+          ) : null}
+        </h1>
         <button
           type="button"
           onClick={markSeen}
-          className="rounded-xl bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50"
+          className="inline-flex h-8 items-center rounded-md border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+          title={t(locale, "activityMarkSeen")}
         >
           {t(locale, "activityMarkSeen")}
         </button>
@@ -189,7 +237,7 @@ export function ActivityClient({
 
       {newest.length > 0 && (
         <section>
-          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+          <h2 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
             {t(locale, "activityNewest")}
           </h2>
           {renderList(newest)}
@@ -198,7 +246,7 @@ export function ActivityClient({
 
       {earlier.length > 0 && (
         <section>
-          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+          <h2 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
             {t(locale, "activityEarlier")}
           </h2>
           {renderList(earlier)}

@@ -116,7 +116,7 @@ export function PaywallModal({
                 type="button"
                 disabled={checkingOut}
                 onClick={runCheckoutStub}
-                className="flex h-11 w-full items-center justify-center rounded-xl bg-blue-600 text-sm font-semibold text-white disabled:opacity-60"
+                className="flex h-11 w-full items-center justify-center rounded-xl bg-brand text-sm font-semibold text-white disabled:opacity-60"
               >
                 {checkingOut ? t(locale, "loading") : t(locale, "monCheckoutCTA")}
               </button>

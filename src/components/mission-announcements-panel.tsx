@@ -89,7 +89,7 @@ export function MissionAnnouncementsPanel({
   }
 
   return (
-    <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-orange-200/80">
+    <section className="rounded-lg border border-orange-200 bg-white p-5">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-sm font-semibold tracking-wide text-orange-700">
           📣 {t(locale, "announcementBoardTitle")}

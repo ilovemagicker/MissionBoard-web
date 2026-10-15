@@ -175,7 +175,7 @@ export function MissionPollsPanel({
   }
 
   return (
-    <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200/80">
+    <section className="rounded-lg border border-slate-200 bg-white p-5">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-sm font-semibold tracking-wide text-slate-500">
           📊 {t(locale, "pollSectionTitle")}

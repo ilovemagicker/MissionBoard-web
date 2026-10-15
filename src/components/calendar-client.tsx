@@ -129,7 +129,7 @@ export function CalendarClient({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-200/80 sm:p-6">
+      <div className="rounded-lg border border-slate-200 bg-white p-4 sm:p-6">
         <div className="mb-4 flex items-center justify-between gap-2">
           <button
             type="button"

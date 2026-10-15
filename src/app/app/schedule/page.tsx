@@ -208,7 +208,7 @@ export default async function SchedulePage({
       nav="schedule"
     >
       {!activeSpaceId ? (
-        <div className="rounded-3xl bg-white p-8 text-center shadow-sm ring-1 ring-slate-200/80">
+        <div className="rounded-lg border border-slate-200 bg-white p-8 text-center">
           <p className="text-sm text-slate-600">{t(locale, "noSpaces")}</p>
           <Link
             href="/app/spaces"
