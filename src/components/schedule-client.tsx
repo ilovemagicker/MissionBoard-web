@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   createShiftAction,
@@ -24,7 +24,9 @@ import {
 import { ScheduleGeneratePanel } from "@/components/schedule-generate-panel";
 import { ScheduleExportPanel } from "@/components/schedule-export-panel";
 import { ScheduleSharePanel } from "@/components/schedule-share-panel";
+import { ScheduleWeekMatrix } from "@/components/schedule-week-matrix";
 import {
+  addDays,
   addMonths,
   daysInMonth,
   mondayFirstWeekday,
@@ -279,6 +281,38 @@ export function ScheduleClient({
   const [showGenerate, setShowGenerate] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [showShare, setShowShare] = useState(false);
+  const [viewMode, setViewMode] = useState<"week" | "month">("week");
+  const [toolsOpen, setToolsOpen] = useState(false);
+  const toolsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!toolsOpen) return;
+    function onDoc(e: MouseEvent) {
+      if (!toolsRef.current?.contains(e.target as Node)) setToolsOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setToolsOpen(false);
+    }
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [toolsOpen]);
+
+  // Esc exits paint mode (desktop convention)
+  useEffect(() => {
+    if (!paintMode) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setPaintMode(false);
+        setLastPaintedId(null);
+      }
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [paintMode]);
 
   const weekdays = weekdaysMonFirst(locale);
 
@@ -654,17 +688,15 @@ export function ScheduleClient({
     });
   }
 
-  function paintDay(dayKey: string) {
+  function paintDay(dayKey: string, forUserId?: string) {
+    const targetId = forUserId ?? paintTargetUserId;
+    if (forUserId) setPaintTargetUserId(forUserId);
     setSelectedKey(dayKey);
     if (!paintBrush) {
       setError(t(locale, "schedulePaintNeedTemplate"));
       return;
     }
-    const existing = shiftsOnDayForUser(
-      shiftsByDay,
-      dayKey,
-      paintTargetUserId
-    );
+    const existing = shiftsOnDayForUser(shiftsByDay, dayKey, targetId);
     if (existing.length > 0) {
       setError(t(locale, "schedulePaintOccupied"));
       return;
@@ -672,7 +704,7 @@ export function ScheduleClient({
     setError(null);
 
     if (paintBrush.kind === "template") {
-      applyTemplate(paintBrush.templateId, dayKey, paintTargetUserId);
+      applyTemplate(paintBrush.templateId, dayKey, targetId);
       return;
     }
 
@@ -690,7 +722,7 @@ export function ScheduleClient({
         title: brush.title,
         color: brush.color,
         textColor: brush.textColor,
-        userId: paintTargetUserId,
+        userId: targetId,
       });
       if (result && "error" in result && result.error) {
         setError(result.error);
@@ -746,6 +778,24 @@ export function ScheduleClient({
     });
   }
 
+  function goWeek(delta: number) {
+    const [yy, mm, dd] = selectedKey.split("-").map(Number);
+    const next = addDays(new Date(yy, mm - 1, dd), delta * 7);
+    const key = toDateKey(next);
+    setSelectedKey(key);
+    const m = startOfMonth(next);
+    setCursor(m);
+    syncYmToUrl(m);
+  }
+
+  function goThisWeek() {
+    const now = new Date();
+    setSelectedKey(toDateKey(now));
+    const m = startOfMonth(now);
+    setCursor(m);
+    syncYmToUrl(m);
+  }
+
   return (
     <div className="space-y-4">
       {isViewer ? (
@@ -757,101 +807,144 @@ export function ScheduleClient({
         <h1 className="text-xl font-bold text-slate-900">
           {t(locale, "scheduleTitle")}
         </h1>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {isEditor && !paintMode ? (
             <button
               type="button"
               onClick={enterPaintMode}
-              className="inline-flex h-10 items-center rounded-xl bg-violet-50 px-4 text-sm font-semibold text-violet-700 ring-1 ring-violet-200 hover:bg-violet-100"
+              className="inline-flex h-9 items-center rounded-md bg-violet-50 px-3 text-sm font-semibold text-violet-700 ring-1 ring-violet-200 hover:bg-violet-100"
             >
-              {t(locale, "schedulePaintMode")}
-            </button>
-          ) : null}
-          {isEditor && !paintMode ? (
-            <button
-              type="button"
-              onClick={() => {
-                setShowGenerate(true);
-                setError(null);
-              }}
-              className="inline-flex h-10 items-center rounded-xl bg-sky-50 px-4 text-sm font-semibold text-sky-800 ring-1 ring-sky-200 hover:bg-sky-100"
-            >
-              {t(locale, "scheduleGenerate")}
-            </button>
-          ) : null}
-          {!paintMode ? (
-            <button
-              type="button"
-              onClick={() => {
-                setShowExport(true);
-                setError(null);
-              }}
-              className="inline-flex h-10 items-center rounded-xl bg-emerald-50 px-4 text-sm font-semibold text-emerald-800 ring-1 ring-emerald-200 hover:bg-emerald-100"
-            >
-              {t(locale, "scheduleExport")}
-            </button>
-          ) : null}
-          {isAdmin && !paintMode ? (
-            <button
-              type="button"
-              onClick={() => {
-                setShowShare(true);
-                setError(null);
-              }}
-              className="inline-flex h-10 items-center rounded-xl bg-indigo-50 px-4 text-sm font-semibold text-indigo-800 ring-1 ring-indigo-200 hover:bg-indigo-100"
-            >
-              {t(locale, "scheduleShare")}
-            </button>
-          ) : null}
-          {isEditor ? (
-            <button
-              type="button"
-              onClick={() => {
-                setShowLeave(true);
-                setError(null);
-              }}
-              className="inline-flex h-10 items-center rounded-xl bg-orange-50 px-4 text-sm font-semibold text-orange-800 ring-1 ring-orange-200 hover:bg-orange-100"
-            >
-              {t(locale, "scheduleLeaveTitle")}
-            </button>
-          ) : null}
-          {isEditor ? (
-            <button
-              type="button"
-              onClick={() => {
-                setShowSwapInbox(true);
-                setError(null);
-              }}
-              className="relative inline-flex h-10 items-center rounded-xl bg-white px-4 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50"
-            >
-              {t(locale, "scheduleSwapTitle")}
-              {pendingSwapCount > 0 ? (
-                <span className="ml-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-orange-500 px-1.5 text-[10px] font-bold text-white">
-                  {pendingSwapCount}
-                </span>
-              ) : null}
-            </button>
-          ) : null}
-          {isEditor ? (
-            <button
-              type="button"
-              onClick={() => {
-                setShowTemplates(true);
-                setError(null);
-              }}
-              className="inline-flex h-10 items-center rounded-xl bg-white px-4 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50"
-            >
-              {t(locale, "scheduleTemplates")}
+              {t(locale, "schedulePaintShort")}
             </button>
           ) : null}
           {isEditor && !paintMode ? (
             <button
               type="button"
               onClick={() => openCreate()}
-              className="inline-flex h-10 items-center rounded-xl bg-brand px-4 text-sm font-semibold text-white hover:bg-brand/90"
+              className="inline-flex h-9 items-center rounded-md bg-brand px-3 text-sm font-semibold text-white hover:bg-brand/90"
             >
-              {t(locale, "scheduleAdd")}
+              + {t(locale, "scheduleAdd")}
             </button>
+          ) : null}
+          {!paintMode ? (
+            <div className="relative" ref={toolsRef}>
+              <button
+                type="button"
+                onClick={() => setToolsOpen((v) => !v)}
+                className="inline-flex h-9 items-center gap-1 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                aria-expanded={toolsOpen}
+                aria-haspopup="menu"
+              >
+                ⋯
+                <span className="sr-only">{t(locale, "scheduleToolsMenu")}</span>
+                {pendingSwapCount > 0 ? (
+                  <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-orange-500 px-1.5 text-[10px] font-bold text-white">
+                    {pendingSwapCount}
+                  </span>
+                ) : null}
+              </button>
+              {toolsOpen ? (
+                <div
+                  role="menu"
+                  className="absolute right-0 z-40 mt-1.5 w-56 rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
+                >
+                  {isEditor ? (
+                    <>
+                      <p className="px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-400">
+                        {t(locale, "scheduleToolsOps")}
+                      </p>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-slate-800 hover:bg-slate-50"
+                        onClick={() => {
+                          setShowLeave(true);
+                          setError(null);
+                          setToolsOpen(false);
+                        }}
+                      >
+                        {t(locale, "scheduleLeaveTitle")}
+                      </button>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-slate-800 hover:bg-slate-50"
+                        onClick={() => {
+                          setShowSwapInbox(true);
+                          setError(null);
+                          setToolsOpen(false);
+                        }}
+                      >
+                        <span>{t(locale, "scheduleSwapTitle")}</span>
+                        {pendingSwapCount > 0 ? (
+                          <span className="rounded-full bg-orange-500 px-1.5 text-[10px] font-bold text-white">
+                            {pendingSwapCount}
+                          </span>
+                        ) : null}
+                      </button>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className="flex w-full px-3 py-2 text-left text-sm text-slate-800 hover:bg-slate-50"
+                        onClick={() => {
+                          setShowTemplates(true);
+                          setError(null);
+                          setToolsOpen(false);
+                        }}
+                      >
+                        {t(locale, "scheduleTemplates")}
+                      </button>
+                      <div className="my-1 border-t border-slate-100" />
+                      <p className="px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-400">
+                        {t(locale, "scheduleToolsInsights")}
+                      </p>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className="flex w-full px-3 py-2 text-left text-sm text-slate-800 hover:bg-slate-50"
+                        onClick={() => {
+                          setShowGenerate(true);
+                          setError(null);
+                          setToolsOpen(false);
+                        }}
+                      >
+                        {t(locale, "scheduleGenerate")}
+                      </button>
+                      <div className="my-1 border-t border-slate-100" />
+                    </>
+                  ) : null}
+                  <p className="px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-400">
+                    {t(locale, "scheduleToolsExternal")}
+                  </p>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="flex w-full px-3 py-2 text-left text-sm text-slate-800 hover:bg-slate-50"
+                    onClick={() => {
+                      setShowExport(true);
+                      setError(null);
+                      setToolsOpen(false);
+                    }}
+                  >
+                    {t(locale, "scheduleExport")}
+                  </button>
+                  {isAdmin ? (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="flex w-full px-3 py-2 text-left text-sm text-slate-800 hover:bg-slate-50"
+                      onClick={() => {
+                        setShowShare(true);
+                        setError(null);
+                        setToolsOpen(false);
+                      }}
+                    >
+                      {t(locale, "scheduleShare")}
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
           ) : null}
         </div>
       </div>
@@ -1014,89 +1107,157 @@ export function ScheduleClient({
       ) : null}
 
       <div
-        className={`rounded-3xl bg-white p-4 shadow-sm ring-1 sm:p-6 ${
-          paintMode ? "ring-violet-300" : "ring-slate-200/80"
+        className={`rounded-lg border bg-white p-3 sm:p-4 ${
+          paintMode ? "border-violet-300" : "border-slate-200"
         }`}
       >
-        <div className="mb-4 flex items-center justify-between gap-2">
-          <button
-            type="button"
-            onClick={() => goMonth(-1)}
-            className="rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
-            aria-label={t(locale, "prevMonth")}
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div
+            role="tablist"
+            className="inline-flex rounded-md border border-slate-200 bg-slate-50 p-0.5"
           >
-            ‹
-          </button>
-          <h2 className="text-lg font-bold text-slate-900">{monthLabel}</h2>
-          <button
-            type="button"
-            onClick={() => goMonth(1)}
-            className="rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
-            aria-label={t(locale, "nextMonth")}
-          >
-            ›
-          </button>
-        </div>
-
-        <div className="mb-2 grid grid-cols-7 gap-1 text-center text-xs font-semibold text-slate-400">
-          {weekdays.map((w) => (
-            <div key={w} className="py-1">
-              {w}
-            </div>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-7 gap-1">
-          {cells.map((cell) => {
-            const selected = cell.key === selectedKey;
-            const targetOccupied =
-              paintMode &&
-              shiftsOnDayForUser(shiftsByDay, cell.key, paintTargetUserId)
-                .length > 0;
-            return (
+            <button
+              type="button"
+              role="tab"
+              aria-selected={viewMode === "week"}
+              onClick={() => setViewMode("week")}
+              className={`rounded px-2.5 py-1 text-xs font-semibold ${
+                viewMode === "week"
+                  ? "bg-white text-brand shadow-sm ring-1 ring-slate-200/80"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              {t(locale, "scheduleViewWeek")}
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={viewMode === "month"}
+              onClick={() => setViewMode("month")}
+              className={`rounded px-2.5 py-1 text-xs font-semibold ${
+                viewMode === "month"
+                  ? "bg-white text-brand shadow-sm ring-1 ring-slate-200/80"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              {t(locale, "scheduleViewMonth")}
+            </button>
+          </div>
+          {viewMode === "month" ? (
+            <div className="flex items-center gap-1">
               <button
-                key={cell.key}
                 type="button"
-                onClick={() => onCellClick(cell)}
-                className={`flex min-h-[3.25rem] flex-col items-center rounded-xl px-1 py-1.5 text-sm transition ${
-                  selected && !paintMode
-                    ? "bg-brand text-white"
-                    : paintMode && !targetOccupied && cell.inMonth
-                      ? "bg-violet-50 text-violet-900 ring-1 ring-violet-200 hover:bg-violet-100"
-                      : cell.inMonth
-                        ? "text-slate-900 hover:bg-slate-50"
-                        : "text-slate-300 hover:bg-slate-50"
-                } ${cell.isToday && !selected ? "ring-1 ring-brand/40" : ""}`}
+                onClick={() => goMonth(-1)}
+                className="rounded-md px-2.5 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                aria-label={t(locale, "prevMonth")}
               >
-                <span className="font-medium">{cell.day}</span>
-                <span className="mt-1 flex flex-wrap items-center justify-center gap-0.5">
-                  {cell.count > 0 ? (
-                    <span
-                      className={`rounded-full px-1.5 text-[10px] font-bold leading-4 ${
-                        selected && !paintMode
-                          ? "bg-white/20 text-white"
-                          : "bg-brand/10 text-brand"
-                      }`}
-                    >
-                      {cell.count}
-                    </span>
-                  ) : null}
-                  {(leaveByDayCount.get(cell.key) ?? 0) > 0 ? (
-                    <span
-                      className={`rounded-full px-1.5 text-[10px] font-bold leading-4 ${
-                        selected && !paintMode
-                          ? "bg-white/20 text-white"
-                          : "bg-orange-100 text-orange-700"
-                      }`}
-                    >
-                      {t(locale, "scheduleLeaveBadge")}
-                    </span>
-                  ) : null}
-                </span>
+                ‹
               </button>
-            );
-          })}
+              <h2 className="min-w-[8rem] text-center text-sm font-semibold text-slate-900">
+                {monthLabel}
+              </h2>
+              <button
+                type="button"
+                onClick={() => goMonth(1)}
+                className="rounded-md px-2.5 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                aria-label={t(locale, "nextMonth")}
+              >
+                ›
+              </button>
+            </div>
+          ) : null}
         </div>
+
+        {viewMode === "week" ? (
+          <ScheduleWeekMatrix
+            locale={locale}
+            weekAnchorKey={selectedKey}
+            members={members}
+            profiles={profiles}
+            shiftsByDay={shiftsByDay}
+            leaveEntries={leaveEntries}
+            selectedKey={selectedKey}
+            paintMode={paintMode}
+            paintTargetUserId={paintTargetUserId}
+            currentUserId={currentUserId}
+            canEdit={isEditor}
+            onSelectDay={(key) => setSelectedKey(key)}
+            onSelectCell={(userId, dayKey) => {
+              setSelectedKey(dayKey);
+              const existing = shiftsOnDayForUser(shiftsByDay, dayKey, userId);
+              const onLeave = leaveEntriesOnDay(leaveEntries, dayKey).some(
+                (e) => e.user_id === userId
+              );
+              if (isEditor && existing.length === 0 && !onLeave) {
+                openCreate(userId);
+              } else if (existing.length === 1 && canEditShift(existing[0], currentUserId, members)) {
+                openEdit(existing[0]);
+              }
+            }}
+            onPaintCell={(userId, dayKey) => paintDay(dayKey, userId)}
+            onPrevWeek={() => goWeek(-1)}
+            onNextWeek={() => goWeek(1)}
+            onThisWeek={goThisWeek}
+          />
+        ) : (
+          <>
+            <div className="mb-2 grid grid-cols-7 gap-1 text-center text-xs font-semibold text-slate-400">
+              {weekdays.map((w) => (
+                <div key={w} className="py-1">
+                  {w}
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-7 gap-1">
+              {cells.map((cell) => {
+                const selected = cell.key === selectedKey;
+                const targetOccupied =
+                  paintMode &&
+                  shiftsOnDayForUser(shiftsByDay, cell.key, paintTargetUserId)
+                    .length > 0;
+                const leaveCount = leaveByDayCount.get(cell.key) ?? 0;
+                return (
+                  <button
+                    key={cell.key}
+                    type="button"
+                    onClick={() => onCellClick(cell)}
+                    className={`flex min-h-[3rem] flex-col items-center rounded-md px-1 py-1.5 text-sm transition ${
+                      selected && !paintMode
+                        ? "bg-brand/10 text-brand ring-1 ring-brand/40"
+                        : paintMode && !targetOccupied && cell.inMonth
+                          ? "bg-violet-50 text-violet-900 ring-1 ring-violet-200 hover:bg-violet-100"
+                          : cell.inMonth
+                            ? "text-slate-900 hover:bg-slate-50"
+                            : "text-slate-300 hover:bg-slate-50"
+                    } ${
+                      cell.isToday
+                        ? "bg-brand/[0.06]"
+                        : ""
+                    }`}
+                  >
+                    <span className="font-medium">{cell.day}</span>
+                    <span className="mt-1 flex flex-wrap items-center justify-center gap-0.5">
+                      {cell.count > 0 ? (
+                        <span className="rounded-full bg-brand/10 px-1.5 text-[10px] font-bold leading-4 text-brand">
+                          {cell.count}
+                        </span>
+                      ) : leaveCount > 0 ? (
+                        <span className="rounded-full bg-orange-100 px-1.5 text-[10px] font-bold leading-4 text-orange-700">
+                          {t(locale, "scheduleLeaveBadge")}
+                        </span>
+                      ) : cell.inMonth ? (
+                        <span className="text-[10px] text-slate-300">
+                          {t(locale, "scheduleEmptyCell")}
+                        </span>
+                      ) : null}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
       </div>
 
       {!paintMode ? (
@@ -1125,7 +1286,7 @@ export function ScheduleClient({
             </div>
           </div>
 
-          <div className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-200/80 sm:p-5">
+          <div className="rounded-lg border border-slate-200 bg-white p-4 sm:p-5">
             <h3 className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">
               {t(locale, "scheduleOnDuty")}
             </h3>
@@ -1243,7 +1404,7 @@ export function ScheduleClient({
             )}
           </div>
 
-          <div className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-200/80 sm:p-5">
+          <div className="rounded-lg border border-slate-200 bg-white p-4 sm:p-5">
             <h3 className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-500">
               {t(locale, "scheduleOffDuty")}
             </h3>

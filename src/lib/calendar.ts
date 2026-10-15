@@ -149,3 +149,16 @@ export const appearanceBadgeClass: Record<CalendarAppearance, string> = {
   deadlineDay: "bg-red-500 text-white",
   overdue: "bg-purple-600 text-white",
 };
+
+/** Monday-first start of week for the given local date. */
+export function startOfWeekMonday(date: Date): Date {
+  const d = startOfDay(date);
+  d.setDate(d.getDate() - mondayFirstWeekday(d));
+  return d;
+}
+
+export function addDays(date: Date, delta: number): Date {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  d.setDate(d.getDate() + delta);
+  return d;
+}
