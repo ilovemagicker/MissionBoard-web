@@ -268,7 +268,7 @@ export function MissionRecurrencePanel({
                     onClick={() => toggleWeekday(w.iso)}
                     className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
                       weekdays.includes(w.iso)
-                        ? "bg-blue-600 text-white"
+                        ? "bg-brand text-white"
                         : "bg-white text-slate-600 ring-1 ring-slate-200"
                     }`}
                   >
@@ -364,7 +364,7 @@ export function MissionRecurrencePanel({
               disabled={
                 pending || (frequency === "weekly" && weekdays.length === 0)
               }
-              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+              className="rounded-xl bg-brand px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
             >
               {t(locale, "recurrenceSave")}
             </button>

@@ -148,7 +148,7 @@ export function SpaceAnnouncementsBoard({
                 setShowAll(true);
                 void markAnnouncementsReadAction(announcements.map((a) => a.id));
               }}
-              className="ml-auto text-xs font-semibold text-blue-700"
+              className="ml-auto text-xs font-semibold text-brand"
             >
               {t(locale, "spaceAnnouncementAll")}
               {announcements.length > 1 ? ` ${announcements.length}` : ""} ›

@@ -184,7 +184,7 @@ export function MissionPollsPanel({
           <button
             type="button"
             onClick={() => setComposing(true)}
-            className="rounded-xl bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-800 ring-1 ring-blue-200"
+            className="rounded-xl bg-brand/10 px-3 py-1.5 text-xs font-semibold text-brand ring-1 ring-brand/30"
           >
             + {t(locale, "pollCreate")}
           </button>
@@ -235,7 +235,7 @@ export function MissionPollsPanel({
               <button
                 type="button"
                 onClick={() => setOptionLabels([...optionLabels, ""])}
-                className="text-xs font-semibold text-blue-700"
+                className="text-xs font-semibold text-brand"
               >
                 + {t(locale, "pollAddOption")}
               </button>
@@ -283,7 +283,7 @@ export function MissionPollsPanel({
             <button
               type="submit"
               disabled={pending}
-              className="rounded-xl bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+              className="rounded-xl bg-brand px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
             >
               {t(locale, "create")}
             </button>
@@ -338,7 +338,7 @@ export function MissionPollsPanel({
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
-                <span className="rounded-full bg-blue-50 px-2 py-0.5 font-semibold text-blue-700">
+                <span className="rounded-full bg-brand/10 px-2 py-0.5 font-semibold text-brand">
                   {poll.allow_multiple ? t(locale, "pollMulti") : t(locale, "pollSingle")}
                 </span>
                 {poll.anonymous && (
@@ -374,7 +374,7 @@ export function MissionPollsPanel({
                       onClick={() =>
                         run(() => closeMissionPollAction(poll.id, missionId, null))
                       }
-                      className="rounded-lg bg-blue-600 px-2 py-1 text-[11px] font-semibold text-white"
+                      className="rounded-lg bg-brand px-2 py-1 text-[11px] font-semibold text-white"
                     >
                       {t(locale, "pollCloseTopVoted")}
                     </button>
@@ -424,7 +424,7 @@ export function MissionPollsPanel({
                         onClick={() => toggleVote(poll, o.id)}
                         className={`w-full rounded-xl px-3 py-2 text-left ring-1 transition ${
                           selected
-                            ? "bg-blue-50 ring-blue-300"
+                            ? "bg-brand/10 ring-brand/40"
                             : "bg-white ring-slate-200 hover:bg-slate-50"
                         } disabled:cursor-default disabled:opacity-80`}
                       >
@@ -449,7 +449,7 @@ export function MissionPollsPanel({
                         </div>
                         <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-100">
                           <div
-                            className={`h-full rounded-full ${isFinal ? "bg-green-500" : selected ? "bg-blue-500" : "bg-blue-300"}`}
+                            className={`h-full rounded-full ${isFinal ? "bg-green-500" : selected ? "bg-brand" : "bg-brand/40"}`}
                             style={{ width: `${pct}%` }}
                           />
                         </div>

@@ -24,7 +24,7 @@ export function MissionFlagIconView({
       role="img"
       aria-label={def.a11yLabel}
       title={def.a11yLabel}
-      className={`inline-flex shrink-0 items-center justify-center rounded-xl bg-blue-50 text-center leading-none ring-1 ring-blue-100 ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center rounded-md bg-brand/10 text-center leading-none ring-1 ring-brand/20 ${className}`}
       style={{ width: size, height: size, fontSize }}
     >
       {def.emoji}
@@ -76,7 +76,7 @@ export function FlagIconPicker({
               onClick={() => onChange(icon.rawValue)}
               className={`flex h-11 items-center justify-center rounded-xl text-lg transition ${
                 active
-                  ? "bg-blue-600 text-white ring-2 ring-blue-600 ring-offset-1"
+                  ? "bg-brand text-white ring-2 ring-brand ring-offset-1"
                   : "bg-slate-100 text-slate-800 ring-1 ring-slate-200 hover:bg-slate-200"
               }`}
             >
