@@ -1,4 +1,5 @@
 import { AccountPanel } from "@/components/account-panel";
+import { McpTokensPanel } from "@/components/mcp-tokens-panel";
 import { AppShell } from "@/components/app-shell";
 import { NotificationPrefsPanel } from "@/components/notification-prefs-panel";
 import { PlanQuotaView } from "@/components/monetization/plan-quota-view";
@@ -13,6 +14,7 @@ import {
   getSpacesForUser,
 } from "@/lib/session";
 import type { UserNotificationPreferencesRow } from "@/lib/types";
+import { listMcpTokensAction } from "@/app/actions/mcp-tokens";
 
 export const dynamic = "force-dynamic";
 
@@ -117,6 +119,9 @@ export default async function SettingsPage() {
     }
   }
 
+  const mcpTokensRes = await listMcpTokensAction();
+  const mcpTokens = mcpTokensRes.tokens ?? [];
+
   return (
     <AppShell
       locale={locale}
@@ -140,6 +145,7 @@ export default async function SettingsPage() {
             { id: "profile", label: t(locale, "profileSection") },
             { id: "plan", label: t(locale, "monPlanQuotaTitle") },
             { id: "notifications", label: t(locale, "notificationsSection") },
+            { id: "mcp", label: t(locale, "mcpSection") },
             { id: "account", label: t(locale, "accountSection") },
           ].map((item) => (
             <a
@@ -180,6 +186,10 @@ export default async function SettingsPage() {
               enabled={prefsSchemaOk}
               prefs={prefs}
             />
+          </div>
+
+          <div id="mcp">
+            <McpTokensPanel locale={locale} tokens={mcpTokens} />
           </div>
 
           <div id="account">

@@ -68,6 +68,10 @@ Preferences (cookies):
 - `mb_active_space` — active space id
 - `mb_locale` — `zh-Hant` (default) or `en`
 
+## MCP (assistants)
+
+Personal-access-token MCP server at `/api/mcp`. See [`docs/MCP.md`](docs/MCP.md).
+
 ## Functional design
 
 Scope and waves (zh): [`docs/FUNCTIONAL_DESIGN.md`](docs/FUNCTIONAL_DESIGN.md).
