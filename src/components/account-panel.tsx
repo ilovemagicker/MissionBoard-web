@@ -2,10 +2,22 @@
 
 import { useState, useTransition } from "react";
 import { deleteAccountAction, signOutAction } from "@/app/actions/auth";
+import { LinkedIdentitiesPanel } from "@/components/linked-identities-panel";
+import type { LinkGoogleErrorCode } from "@/lib/link-google-errors";
 import { t, tf } from "@/lib/i18n";
 import type { Locale } from "@/lib/types";
 
-export function AccountPanel({ locale }: { locale: Locale }) {
+export function AccountPanel({
+  locale,
+  identityProviders = [],
+  linkOk = false,
+  linkError = null,
+}: {
+  locale: Locale;
+  identityProviders?: string[];
+  linkOk?: boolean;
+  linkError?: LinkGoogleErrorCode | null;
+}) {
   const [pending, startTransition] = useTransition();
   const [confirming, setConfirming] = useState(false);
   const [phrase, setPhrase] = useState("");
@@ -38,7 +50,16 @@ export function AccountPanel({ locale }: { locale: Locale }) {
         {t(locale, "meAccountDetails")}
       </p>
 
-      <form action={signOutAction} className="mt-4">
+      <div className="mt-4">
+        <LinkedIdentitiesPanel
+          locale={locale}
+          providers={identityProviders}
+          linkOk={linkOk}
+          linkError={linkError}
+        />
+      </div>
+
+      <form action={signOutAction}>
         <button
           type="submit"
           className="h-10 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50"

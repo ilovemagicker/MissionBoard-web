@@ -46,6 +46,10 @@ Open [http://localhost:3000](http://localhost:3000).
 3. In Google Cloud Console OAuth client, allow the same redirect URIs that Supabase shows for the Google provider (Supabase callback host, not only the app `/auth/callback`).
 4. Web login uses `signInWithOAuth({ provider: 'google', options: { redirectTo: origin + '/auth/callback' } })`; `/auth/callback` exchanges the code for a session (`@supabase/ssr`).
 
+### Account linking (Link Google)
+
+After Email (or an already-linked mobile session) sign-in, **Settings → Account → Link Google** calls `supabase.auth.linkIdentity({ provider: 'google' })` so Android can use the **same** `auth.users` row. Requires Dashboard **Enable manual linking**. See [`docs/ACCOUNT_LINKING_zh.md`](docs/ACCOUNT_LINKING_zh.md). Do **not** use `signInWithOAuth` for this button (that would risk a second account).
+
 ## Routes
 
 | Path | Purpose |
