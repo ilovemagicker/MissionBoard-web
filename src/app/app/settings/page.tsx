@@ -15,13 +15,36 @@ import {
 } from "@/lib/session";
 import type { UserNotificationPreferencesRow } from "@/lib/types";
 import { listMcpTokensAction } from "@/app/actions/mcp-tokens";
+import { parseLinkErrorQuery } from "@/lib/link-google-errors";
 
 export const dynamic = "force-dynamic";
 
-export default async function SettingsPage() {
+export default async function SettingsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const locale = await getLocale();
   const { user, configured } = await getSession();
   if (!configured || !user) return null;
+
+  const sp = (await searchParams) ?? {};
+  const linkRaw = sp.link;
+  const linkErrorRaw = sp.link_error;
+  const linkOk =
+    (Array.isArray(linkRaw) ? linkRaw[0] : linkRaw) === "ok";
+  const linkError = parseLinkErrorQuery(
+    Array.isArray(linkErrorRaw) ? linkErrorRaw[0] : linkErrorRaw
+  );
+
+  // Prefer GoTrue identities over profiles.auth_provider (parity with mobile).
+  const identityProviders = Array.from(
+    new Set(
+      (user.identities ?? [])
+        .map((i) => (i.provider || "").trim())
+        .filter(Boolean)
+    )
+  );
 
   const spaces = await getSpacesForUser(user.id);
   const activeSpaceId = await getActiveSpaceId(spaces);
@@ -193,7 +216,12 @@ export default async function SettingsPage() {
           </div>
 
           <div id="account">
-            <AccountPanel locale={locale} />
+            <AccountPanel
+              locale={locale}
+              identityProviders={identityProviders}
+              linkOk={linkOk}
+              linkError={linkError}
+            />
           </div>
         </div>
       </div>
